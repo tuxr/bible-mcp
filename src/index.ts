@@ -372,7 +372,6 @@ const LANDING_PAGE_HTML = `<!DOCTYPE html>
     <header>
       <h1>📖 Bible MCP</h1>
       <p class="subtitle">Bible verse lookup &amp; search for AI assistants</p>
-      <span class="badge">Public MCP Server</span>
     </header>
 
     <section>
