@@ -2,7 +2,8 @@
 
 A public MCP (Model Context Protocol) server that provides Bible verse lookup and search capabilities, powered by a custom Bible API hosted on Cloudflare Workers with D1.
 
-**Live at:** `https://bible-mcp.dws-cloud.com/mcp`
+**Landing Page:** https://bible-mcp.dws-cloud.com
+**MCP Endpoint:** `https://bible-mcp.dws-cloud.com/mcp`
 
 ## Features
 

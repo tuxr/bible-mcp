@@ -4,9 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Live URLs
 
-- **Primary:** `https://bible-mcp.dws-cloud.com/mcp`
+- **Landing Page:** https://bible-mcp.dws-cloud.com
+- **MCP Endpoint:** `https://bible-mcp.dws-cloud.com/mcp`
 - **Backup:** `https://bible-mcp.dws-cloud.workers.dev/mcp`
-- **Bible API:** `https://bible-api.dws-cloud.com`
+- **Bible API:** https://bible-api.dws-cloud.com
 
 ## Commands
 
@@ -27,7 +28,13 @@ MCP Client (Claude.ai) → MCP Worker ──[Service Binding]──► Bible API
 
 **Why Service Binding?** Cloudflare Workers on the same account cannot call each other via public HTTP (error 1042). Service Bindings enable direct Worker-to-Worker communication.
 
+**Routes:**
+- `/` - Landing page with setup instructions and tool documentation
+- `/mcp` - MCP protocol endpoint (for Claude.ai connectors)
+- `/api`, `/connect` - Redirect to `/mcp`
+
 **Key components in `src/index.ts`:**
+- `LANDING_PAGE_HTML` - Static HTML landing page
 - `env.BIBLE_API` - Service binding to the Bible API worker (configured in `wrangler.toml`)
 - `fetchApi<T>()` - Uses the service binding's `.fetch()` method
 - Tools registered via `server.tool(name, description, zodSchema, handler)`
