@@ -75,10 +75,16 @@ Once connected, you can ask Claude things like:
 
 ## Architecture
 
-This MCP server connects to a custom Bible API:
-- **API:** `https://bible-api.dws-cloud.workers.dev`
+```
+Claude.ai → MCP Worker ──[Service Binding]──► Bible API Worker → D1 Database
+```
+
+- **MCP Server:** Cloudflare Worker with MCP protocol handler
+- **Bible API:** Separate Cloudflare Worker connected via Service Binding
 - **Database:** Cloudflare D1 with 74,000+ verses
 - **Search:** Full-text search via FTS5 index
+
+*Service Bindings enable direct Worker-to-Worker communication on the same Cloudflare account.*
 
 ## License
 

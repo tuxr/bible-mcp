@@ -13,15 +13,17 @@ npx tsc --noEmit # Type check without emitting
 
 ## Architecture
 
-This is a stateless MCP server hosted on Cloudflare Workers that wraps a custom Bible API (also on Workers + D1).
+This is a stateless MCP server hosted on Cloudflare Workers that communicates with a Bible API worker (also on the same Cloudflare account) via **Service Binding**.
 
 ```
-MCP Client (Claude.ai) → This MCP Server → Bible API (bible-api.dws-cloud.workers.dev) → D1 Database
+MCP Client (Claude.ai) → MCP Worker ──[Service Binding]──► Bible API Worker → D1 Database
 ```
+
+**Why Service Binding?** Cloudflare Workers on the same account cannot call each other via public HTTP (error 1042). Service Bindings enable direct Worker-to-Worker communication.
 
 **Key components in `src/index.ts`:**
-- `BIBLE_API_BASE` - Base URL for the Bible API
-- `fetchApi<T>()` - Generic API client with error handling
+- `env.BIBLE_API` - Service binding to the Bible API worker (configured in `wrangler.toml`)
+- `fetchApi<T>()` - Uses the service binding's `.fetch()` method
 - Tools registered via `server.tool(name, description, zodSchema, handler)`
 
 **Bible API endpoints used:**
@@ -51,3 +53,7 @@ server.tool(
 ## Version Constraints
 
 The `@modelcontextprotocol/sdk` version must match the version bundled in `agents` package (currently 1.25.2).
+
+## Local Development Note
+
+Service bindings only work when deployed. For local dev, you may need to temporarily switch to direct HTTP fetch or use `wrangler dev --remote`.
