@@ -1,15 +1,17 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createMcpHandler } from "agents/mcp";
 import { z } from "zod";
+import { env } from "cloudflare:workers";
 
 // =============================================================================
-// Configuration
+// Types
 // =============================================================================
-const BIBLE_API_BASE = "https://bible-api.dws-cloud.workers.dev/v1";
 
-// =============================================================================
-// API Response Types
-// =============================================================================
+// Service binding type for the Bible API worker
+interface Env {
+  BIBLE_API: Fetcher;
+}
+
 interface Translation {
   id: string;
   name: string;
@@ -59,10 +61,15 @@ interface ApiError {
 }
 
 // =============================================================================
-// API Client Functions
+// API Client - Uses Service Binding for Worker-to-Worker communication
 // =============================================================================
 async function fetchApi<T>(path: string): Promise<T | ApiError> {
-  const response = await fetch(`${BIBLE_API_BASE}${path}`);
+  const bibleApi = (env as unknown as Env).BIBLE_API;
+
+  // Service bindings require a full URL, but it's routed internally
+  const url = `https://bible-api.internal/v1${path}`;
+  const response = await bibleApi.fetch(url);
+
   return response.json() as Promise<T | ApiError>;
 }
 
@@ -75,7 +82,7 @@ function isError(data: unknown): data is ApiError {
 // =============================================================================
 const server = new McpServer({
   name: "Bible MCP",
-  version: "2.0.0",
+  version: "2.0.1",
 });
 
 // =============================================================================

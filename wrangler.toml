@@ -3,3 +3,9 @@ name = "bible-mcp"
 main = "src/index.ts"
 compatibility_date = "2025-01-28"
 compatibility_flags = ["nodejs_compat"]
+
+# Service binding to Bible API worker (same account)
+# This allows direct Worker-to-Worker communication without HTTP
+[[services]]
+binding = "BIBLE_API"
+service = "bible-api"
