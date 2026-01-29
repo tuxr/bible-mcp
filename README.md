@@ -2,7 +2,7 @@
 
 A public MCP (Model Context Protocol) server that provides Bible verse lookup and search capabilities, powered by a custom Bible API hosted on Cloudflare Workers with D1.
 
-**Live at:** `https://bible-mcp.dws-cloud.workers.dev/mcp`
+**Live at:** `https://bible-mcp.dws-cloud.com/mcp`
 
 ## Features
 
@@ -60,7 +60,7 @@ npm run deploy
 ## Connecting to Claude.ai
 
 1. Go to Claude.ai Settings → Connectors
-2. Add the MCP server URL: `https://bible-mcp.dws-cloud.workers.dev/mcp`
+2. Add the MCP server URL: `https://bible-mcp.dws-cloud.com/mcp`
 3. The Bible tools will now be available in your conversations
 
 ## Example Usage

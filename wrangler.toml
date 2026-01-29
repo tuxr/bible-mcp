@@ -4,6 +4,15 @@ main = "src/index.ts"
 compatibility_date = "2025-01-28"
 compatibility_flags = ["nodejs_compat"]
 
+# Keep workers.dev subdomain active as backup
+workers_dev = true
+
+# Custom domain (configured via Cloudflare dashboard)
+# https://bible-mcp.dws-cloud.com/mcp
+[[routes]]
+pattern = "bible-mcp.dws-cloud.com"
+custom_domain = true
+
 # Service binding to Bible API worker (same account)
 # This allows direct Worker-to-Worker communication without HTTP
 [[services]]
