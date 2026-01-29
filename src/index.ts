@@ -2,114 +2,81 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createMcpHandler } from "agents/mcp";
 import { z } from "zod";
 
-// Types for Bible API responses
-interface BibleApiVerse {
-  book_id: string;
+// =============================================================================
+// Configuration
+// =============================================================================
+const BIBLE_API_BASE = "https://bible-api.dws-cloud.workers.dev/v1";
+
+// =============================================================================
+// API Response Types
+// =============================================================================
+interface Translation {
+  id: string;
+  name: string;
+}
+
+interface Verse {
+  book: string;
   book_name: string;
   chapter: number;
   verse: number;
   text: string;
+  reference?: string;
 }
 
-interface BibleApiResponse {
+interface VerseResponse {
   reference: string;
-  verses: BibleApiVerse[];
+  translation: Translation;
+  verses: Verse[];
   text: string;
-  translation_id: string;
-  translation_name: string;
-  translation_note: string;
 }
 
-interface BibleApiError {
+interface SearchResponse {
+  query: string;
+  translation: string;
+  total: number;
+  results: Verse[];
+}
+
+interface Book {
+  id: string;
+  name: string;
+  testament: string;
+  chapters: number;
+  aliases: string[];
+}
+
+interface TranslationInfo {
+  id: string;
+  name: string;
+  language: string;
+  license: string;
+  description: string;
+}
+
+interface ApiError {
   error: string;
 }
 
-// Available translations in bible-api.com
-const TRANSLATIONS: Record<string, string> = {
-  kjv: "King James Version",
-  web: "World English Bible (default)",
-  webbe: "World English Bible, British Edition",
-  oeb: "Open English Bible",
-  clementine: "Clementine Latin Vulgate",
-  almeida: "João Ferreira de Almeida (Portuguese)",
-  rccv: "Romanian Cornilescu Version",
-};
+// =============================================================================
+// API Client Functions
+// =============================================================================
+async function fetchApi<T>(path: string): Promise<T | ApiError> {
+  const response = await fetch(`${BIBLE_API_BASE}${path}`);
+  return response.json() as Promise<T | ApiError>;
+}
 
-// Books of the Bible for reference
-const BIBLE_BOOKS = {
-  oldTestament: [
-    "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
-    "Joshua", "Judges", "Ruth", "1 Samuel", "2 Samuel",
-    "1 Kings", "2 Kings", "1 Chronicles", "2 Chronicles",
-    "Ezra", "Nehemiah", "Esther", "Job", "Psalms", "Proverbs",
-    "Ecclesiastes", "Song of Solomon", "Isaiah", "Jeremiah",
-    "Lamentations", "Ezekiel", "Daniel", "Hosea", "Joel",
-    "Amos", "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk",
-    "Zephaniah", "Haggai", "Zechariah", "Malachi"
-  ],
-  newTestament: [
-    "Matthew", "Mark", "Luke", "John", "Acts",
-    "Romans", "1 Corinthians", "2 Corinthians", "Galatians",
-    "Ephesians", "Philippians", "Colossians",
-    "1 Thessalonians", "2 Thessalonians",
-    "1 Timothy", "2 Timothy", "Titus", "Philemon",
-    "Hebrews", "James", "1 Peter", "2 Peter",
-    "1 John", "2 John", "3 John", "Jude", "Revelation"
-  ]
-};
+function isError(data: unknown): data is ApiError {
+  return typeof data === "object" && data !== null && "error" in data;
+}
 
-// Popular verses for the random verse feature
-const POPULAR_VERSES = [
-  "John 3:16", "Jeremiah 29:11", "Philippians 4:13", "Romans 8:28",
-  "Isaiah 41:10", "Psalm 23:1-6", "Proverbs 3:5-6", "Romans 12:2",
-  "Philippians 4:6-7", "Matthew 11:28-30", "Joshua 1:9", "Isaiah 40:31",
-  "Psalm 46:1", "Galatians 5:22-23", "Hebrews 11:1", "Romans 5:8",
-  "2 Timothy 1:7", "1 Corinthians 13:4-7", "Ephesians 2:8-9", "Psalm 91:1-2",
-  "Matthew 6:33", "Colossians 3:23", "Psalm 119:105", "James 1:5",
-  "1 Peter 5:7", "Deuteronomy 31:6", "Psalm 27:1", "Isaiah 26:3",
-  "Matthew 5:14-16", "Romans 15:13", "Psalm 37:4", "Proverbs 16:3"
-];
-
-// Create the MCP server
+// =============================================================================
+// MCP Server
+// =============================================================================
 const server = new McpServer({
   name: "Bible MCP",
-  version: "1.0.0",
+  version: "2.0.0",
 });
-
-/**
- * Fetch a verse or passage from bible-api.com
- */
-async function fetchBibleVerse(
-  reference: string,
-  translation?: string
-): Promise<BibleApiResponse | BibleApiError> {
-  const url = new URL(`https://bible-api.com/${encodeURIComponent(reference)}`);
-
-  if (translation && translation in TRANSLATIONS) {
-    url.searchParams.set("translation", translation);
-  }
-
-  const response = await fetch(url.toString());
-  return response.json() as Promise<BibleApiResponse | BibleApiError>;
-}
-
-/**
- * Format a Bible API response for display
- */
-function formatVerseResponse(data: BibleApiResponse): string {
-  const lines = [
-    `📖 ${data.reference}`,
-    `Translation: ${data.translation_name}`,
-    "",
-    data.text.trim(),
-  ];
-
-  if (data.translation_note) {
-    lines.push("", `Note: ${data.translation_note}`);
-  }
-
-  return lines.join("\n");
-}
 
 // =============================================================================
 // TOOL: Get Verse
@@ -120,98 +87,101 @@ server.tool(
 
 Examples:
 - "John 3:16" - single verse
-- "Romans 8:1-11" - verse range
+- "Romans 8:28-39" - verse range
 - "Psalm 23" - entire chapter
-- "Genesis 1:1-2:3" - cross-chapter range
-
-Available translations: ${Object.entries(TRANSLATIONS).map(([k, v]) => `${k} (${v})`).join(", ")}`,
+- "Genesis 1:1-2:3" - multi-chapter range
+- "Tobit 1:1" - Apocrypha supported`,
   {
-    reference: z.string().describe("Bible reference (e.g., 'John 3:16', 'Psalm 23', 'Romans 8:1-11')"),
-    translation: z.enum(["kjv", "web", "webbe", "oeb", "clementine", "almeida", "rccv"])
+    reference: z.string().describe("Bible reference (e.g., 'John 3:16', 'Psalm 23', 'Romans 8:28-39')"),
+    translation: z.enum(["web", "kjv"])
       .optional()
-      .describe("Translation to use (default: web)"),
+      .describe("Translation: 'web' (World English Bible, default) or 'kjv' (King James Version)"),
   },
   async ({ reference, translation }) => {
-    const data = await fetchBibleVerse(reference, translation);
+    const params = new URLSearchParams();
+    if (translation) params.set("translation", translation);
 
-    if ("error" in data) {
+    const query = params.toString();
+    const path = `/verses/${encodeURIComponent(reference)}${query ? `?${query}` : ""}`;
+    const data = await fetchApi<VerseResponse>(path);
+
+    if (isError(data)) {
       return {
         content: [{ type: "text", text: `Error: ${data.error}` }],
         isError: true,
       };
     }
 
-    return {
-      content: [{ type: "text", text: formatVerseResponse(data) }],
-    };
+    const output = [
+      `📖 ${data.reference}`,
+      `Translation: ${data.translation.name}`,
+      "",
+      data.text,
+    ].join("\n");
+
+    return { content: [{ type: "text", text: output }] };
   }
 );
 
 // =============================================================================
-// TOOL: Get Random Verse
+// TOOL: Search Bible
 // =============================================================================
 server.tool(
-  "get_random_verse",
-  "Get a random inspirational Bible verse from a curated list of popular passages.",
+  "search_bible",
+  `Search the Bible for words or phrases. Returns matching verses with references.
+
+Examples:
+- Search all: q="love"
+- Filter by book: q="faith", book="ROM"
+- Filter by testament: q="peace", testament="NT"`,
   {
-    translation: z.enum(["kjv", "web", "webbe", "oeb", "clementine", "almeida", "rccv"])
+    query: z.string().describe("Search term or phrase"),
+    book: z.string()
       .optional()
-      .describe("Translation to use (default: web)"),
+      .describe("Filter by book code (e.g., 'GEN', 'ROM', 'PSA')"),
+    testament: z.enum(["OT", "NT", "AP"])
+      .optional()
+      .describe("Filter by testament: OT (Old), NT (New), AP (Apocrypha)"),
+    limit: z.number()
+      .min(1)
+      .max(50)
+      .optional()
+      .describe("Max results to return (default: 20, max: 50)"),
   },
-  async ({ translation }) => {
-    const randomIndex = Math.floor(Math.random() * POPULAR_VERSES.length);
-    const reference = POPULAR_VERSES[randomIndex];
+  async ({ query, book, testament, limit }) => {
+    const params = new URLSearchParams({ q: query });
+    if (book) params.set("book", book);
+    if (testament) params.set("testament", testament);
+    if (limit) params.set("limit", String(limit));
 
-    const data = await fetchBibleVerse(reference, translation);
+    const data = await fetchApi<SearchResponse>(`/search?${params.toString()}`);
 
-    if ("error" in data) {
+    if (isError(data)) {
       return {
         content: [{ type: "text", text: `Error: ${data.error}` }],
         isError: true,
       };
     }
 
-    return {
-      content: [{ type: "text", text: formatVerseResponse(data) }],
-    };
-  }
-);
-
-// =============================================================================
-// TOOL: Get Verse of the Day
-// =============================================================================
-server.tool(
-  "get_verse_of_the_day",
-  "Get a 'verse of the day' - a consistent verse for the current date that changes daily.",
-  {
-    translation: z.enum(["kjv", "web", "webbe", "oeb", "clementine", "almeida", "rccv"])
-      .optional()
-      .describe("Translation to use (default: web)"),
-  },
-  async ({ translation }) => {
-    // Use the current date to deterministically select a verse
-    const today = new Date();
-    const dayOfYear = Math.floor(
-      (today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000
-    );
-    const verseIndex = dayOfYear % POPULAR_VERSES.length;
-    const reference = POPULAR_VERSES[verseIndex];
-
-    const data = await fetchBibleVerse(reference, translation);
-
-    if ("error" in data) {
+    if (data.results.length === 0) {
       return {
-        content: [{ type: "text", text: `Error: ${data.error}` }],
-        isError: true,
+        content: [{ type: "text", text: `No results found for "${query}"` }],
       };
     }
 
-    return {
-      content: [{
-        type: "text",
-        text: `🌅 Verse of the Day (${today.toLocaleDateString()})\n\n${formatVerseResponse(data)}`
-      }],
-    };
+    const lines = [
+      `🔍 Search: "${data.query}"`,
+      `Found: ${data.total} results (showing ${data.results.length})`,
+      "",
+    ];
+
+    for (const verse of data.results) {
+      lines.push(`📖 ${verse.reference}`);
+      lines.push(verse.text);
+      lines.push("");
+    }
+
+    return { content: [{ type: "text", text: lines.join("\n").trim() }] };
   }
 );
 
@@ -220,31 +190,50 @@ server.tool(
 // =============================================================================
 server.tool(
   "list_books",
-  "List all books of the Bible, organized by Old and New Testament.",
+  "List all books of the Bible with chapter counts. Can filter by testament.",
   {
-    testament: z.enum(["old", "new", "all"])
+    testament: z.enum(["OT", "NT", "AP", "all"])
       .optional()
-      .describe("Which testament to list (default: all)"),
+      .describe("Filter: OT (Old Testament), NT (New Testament), AP (Apocrypha), all (default)"),
   },
-  async ({ testament = "all" }) => {
-    let result = "";
+  async ({ testament }) => {
+    const params = testament && testament !== "all"
+      ? `?testament=${testament}`
+      : "";
 
-    if (testament === "all" || testament === "old") {
-      result += "📜 OLD TESTAMENT\n";
-      result += "─".repeat(40) + "\n";
-      result += BIBLE_BOOKS.oldTestament.map((book, i) => `${i + 1}. ${book}`).join("\n");
-      result += "\n\n";
+    const data = await fetchApi<Book[]>(`/books${params}`);
+
+    if (isError(data)) {
+      return {
+        content: [{ type: "text", text: `Error: ${data.error}` }],
+        isError: true,
+      };
     }
 
-    if (testament === "all" || testament === "new") {
-      result += "✝️ NEW TESTAMENT\n";
-      result += "─".repeat(40) + "\n";
-      result += BIBLE_BOOKS.newTestament.map((book, i) => `${i + 1}. ${book}`).join("\n");
+    // Group by testament
+    const grouped: Record<string, Book[]> = {};
+    for (const book of data) {
+      if (!grouped[book.testament]) grouped[book.testament] = [];
+      grouped[book.testament].push(book);
     }
 
-    return {
-      content: [{ type: "text", text: result.trim() }],
+    const testamentNames: Record<string, string> = {
+      OT: "📜 OLD TESTAMENT",
+      NT: "✝️ NEW TESTAMENT",
+      AP: "📚 APOCRYPHA",
     };
+
+    const lines: string[] = [];
+    for (const [key, books] of Object.entries(grouped)) {
+      lines.push(testamentNames[key] || key);
+      lines.push("─".repeat(40));
+      for (const book of books) {
+        lines.push(`${book.id.padEnd(4)} ${book.name} (${book.chapters} ch)`);
+      }
+      lines.push("");
+    }
+
+    return { content: [{ type: "text", text: lines.join("\n").trim() }] };
   }
 );
 
@@ -256,61 +245,82 @@ server.tool(
   "List all available Bible translations.",
   {},
   async () => {
-    let result = "📚 AVAILABLE TRANSLATIONS\n";
-    result += "─".repeat(40) + "\n\n";
+    const data = await fetchApi<TranslationInfo[]>("/translations");
 
-    for (const [code, name] of Object.entries(TRANSLATIONS)) {
-      const isDefault = code === "web" ? " (default)" : "";
-      result += `• ${code}: ${name}${isDefault}\n`;
+    if (isError(data)) {
+      return {
+        content: [{ type: "text", text: `Error: ${data.error}` }],
+        isError: true,
+      };
     }
 
-    result += "\n💡 Use the translation code (e.g., 'kjv') when fetching verses.";
+    const lines = ["📚 AVAILABLE TRANSLATIONS", "─".repeat(40), ""];
 
-    return {
-      content: [{ type: "text", text: result }],
-    };
+    for (const t of data) {
+      lines.push(`• ${t.id.toUpperCase()} - ${t.name}`);
+      lines.push(`  ${t.description}`);
+      lines.push(`  Language: ${t.language} | License: ${t.license}`);
+      lines.push("");
+    }
+
+    return { content: [{ type: "text", text: lines.join("\n").trim() }] };
   }
 );
 
 // =============================================================================
-// TOOL: Compare Translations
+// TOOL: Get Random Verse
 // =============================================================================
 server.tool(
-  "compare_translations",
-  "Compare a verse across multiple translations to see different wordings.",
+  "get_random_verse",
+  `Get a random Bible verse. Can filter by book or testament.
+
+Examples:
+- Random from anywhere: no params
+- Random Psalm: book="PSA"
+- Random from New Testament: testament="NT"`,
   {
-    reference: z.string().describe("Bible reference to compare (e.g., 'John 3:16')"),
-    translations: z.array(z.enum(["kjv", "web", "webbe", "oeb"]))
+    translation: z.enum(["web", "kjv"])
       .optional()
-      .describe("Translations to compare (default: kjv, web)"),
+      .describe("Translation: 'web' (default) or 'kjv'"),
+    book: z.string()
+      .optional()
+      .describe("Filter by book code (e.g., 'PSA', 'PRO', 'ROM')"),
+    testament: z.enum(["OT", "NT", "AP"])
+      .optional()
+      .describe("Filter by testament: OT, NT, or AP (Apocrypha)"),
   },
-  async ({ reference, translations = ["kjv", "web"] }) => {
-    const results: string[] = [
-      `📖 Comparing: ${reference}`,
-      "═".repeat(50),
-      "",
-    ];
+  async ({ translation, book, testament }) => {
+    const params = new URLSearchParams();
+    if (translation) params.set("translation", translation);
+    if (book) params.set("book", book);
+    if (testament) params.set("testament", testament);
 
-    for (const translation of translations) {
-      const data = await fetchBibleVerse(reference, translation);
+    const query = params.toString();
+    const data = await fetchApi<VerseResponse>(`/random${query ? `?${query}` : ""}`);
 
-      if ("error" in data) {
-        results.push(`❌ ${translation.toUpperCase()}: Error - ${data.error}\n`);
-      } else {
-        results.push(`📜 ${data.translation_name}`);
-        results.push("─".repeat(40));
-        results.push(data.text.trim());
-        results.push("");
-      }
+    if (isError(data)) {
+      return {
+        content: [{ type: "text", text: `Error: ${data.error}` }],
+        isError: true,
+      };
     }
 
-    return {
-      content: [{ type: "text", text: results.join("\n") }],
-    };
+    const output = [
+      `🎲 Random Verse`,
+      "",
+      `📖 ${data.reference}`,
+      `Translation: ${data.translation.name}`,
+      "",
+      data.text,
+    ].join("\n");
+
+    return { content: [{ type: "text", text: output }] };
   }
 );
 
-// Export the fetch handler for Cloudflare Workers
+// =============================================================================
+// Export Handler
+// =============================================================================
 export default {
   fetch: createMcpHandler(server),
 };

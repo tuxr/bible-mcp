@@ -1,36 +1,31 @@
 # Bible MCP Server
 
-A public MCP (Model Context Protocol) server that provides Bible verse lookup capabilities, powered by [bible-api.com](https://bible-api.com/) and hosted on Cloudflare Workers.
+A public MCP (Model Context Protocol) server that provides Bible verse lookup and search capabilities, powered by a custom Bible API hosted on Cloudflare Workers with D1.
+
+**Live at:** `https://bible-mcp.dws-cloud.workers.dev/mcp`
 
 ## Features
 
-- 📖 **Get Verse** - Retrieve any Bible verse or passage by reference
-- 🎲 **Random Verse** - Get a random inspirational verse
-- 🌅 **Verse of the Day** - Daily rotating verse
-- 📚 **List Books** - Browse Old and New Testament books
-- 🌍 **Multiple Translations** - KJV, WEB, OEB, and more
-- ⚖️ **Compare Translations** - See a verse in multiple translations side by side
+- 📖 **Get Verse** - Retrieve any verse, range, or chapter
+- 🔍 **Search Bible** - Full-text search with book/testament filters
+- 📚 **List Books** - Browse all 86 books including Apocrypha
+- 🌍 **Multiple Translations** - KJV and World English Bible
+- 🎲 **Random Verse** - With optional book/testament filters
 
 ## Available Tools
 
 | Tool | Description |
 |------|-------------|
-| `get_verse` | Fetch a specific verse or passage (e.g., "John 3:16", "Psalm 23") |
-| `get_random_verse` | Get a random verse from a curated list |
-| `get_verse_of_the_day` | Get a consistent daily verse |
-| `list_books` | List Bible books by testament |
+| `get_verse` | Fetch verses by reference (e.g., "John 3:16", "Psalm 23", "Romans 8:28-39") |
+| `search_bible` | Search for words/phrases with book and testament filters |
+| `list_books` | List Bible books with chapter counts, filterable by testament |
 | `list_translations` | Show available translations |
-| `compare_translations` | Compare a verse across translations |
+| `get_random_verse` | Get a random verse, optionally filtered by book or testament |
 
 ## Supported Translations
 
 - `web` - World English Bible (default)
 - `kjv` - King James Version
-- `webbe` - World English Bible, British Edition
-- `oeb` - Open English Bible
-- `clementine` - Clementine Latin Vulgate
-- `almeida` - João Ferreira de Almeida (Portuguese)
-- `rccv` - Romanian Cornilescu Version
 
 ## Development
 
@@ -42,10 +37,7 @@ A public MCP (Model Context Protocol) server that provides Bible verse lookup ca
 ### Setup
 
 ```bash
-# Install dependencies
 npm install
-
-# Start local development server
 npm run dev
 ```
 
@@ -62,19 +54,13 @@ Then enter `http://localhost:8787/mcp` in the inspector.
 ## Deployment
 
 ```bash
-# Deploy to Cloudflare Workers
 npm run deploy
 ```
 
-After deployment, your server will be live at:
-`https://bible-mcp.<your-subdomain>.workers.dev/mcp`
-
 ## Connecting to Claude.ai
 
-Once deployed, you can add this as a connector in Claude.ai:
-
 1. Go to Claude.ai Settings → Connectors
-2. Add your MCP server URL: `https://bible-mcp.<your-subdomain>.workers.dev/mcp`
+2. Add the MCP server URL: `https://bible-mcp.dws-cloud.workers.dev/mcp`
 3. The Bible tools will now be available in your conversations
 
 ## Example Usage
@@ -82,15 +68,17 @@ Once deployed, you can add this as a connector in Claude.ai:
 Once connected, you can ask Claude things like:
 
 - "Look up John 3:16"
-- "Show me Psalm 23 in the King James Version"
-- "Give me a random Bible verse"
-- "What's the verse of the day?"
-- "Compare Romans 8:28 in KJV and WEB translations"
-- "List the books of the New Testament"
+- "Search the Bible for 'faith' in the New Testament"
+- "Show me a random Psalm"
+- "List the books of the Apocrypha"
+- "Get Romans 8:28-39 in KJV"
 
-## API Reference
+## Architecture
 
-This server wraps [bible-api.com](https://bible-api.com/), a free Bible API.
+This MCP server connects to a custom Bible API:
+- **API:** `https://bible-api.dws-cloud.workers.dev`
+- **Database:** Cloudflare D1 with 74,000+ verses
+- **Search:** Full-text search via FTS5 index
 
 ## License
 

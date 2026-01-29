@@ -13,30 +13,36 @@ npx tsc --noEmit # Type check without emitting
 
 ## Architecture
 
-This is a stateless MCP (Model Context Protocol) server hosted on Cloudflare Workers that wraps the bible-api.com REST API.
+This is a stateless MCP server hosted on Cloudflare Workers that wraps a custom Bible API (also on Workers + D1).
+
+```
+MCP Client (Claude.ai) → This MCP Server → Bible API (bible-api.dws-cloud.workers.dev) → D1 Database
+```
 
 **Key components in `src/index.ts`:**
-- `McpServer` from `@modelcontextprotocol/sdk` - creates the MCP server instance
-- `createMcpHandler` from `agents/mcp` - Cloudflare's handler that implements Streamable HTTP transport
-- Tools are registered via `server.tool(name, description, zodSchema, handler)`
+- `BIBLE_API_BASE` - Base URL for the Bible API
+- `fetchApi<T>()` - Generic API client with error handling
+- Tools registered via `server.tool(name, description, zodSchema, handler)`
 
-**Data flow:**
-```
-MCP Client (Claude.ai) → Cloudflare Worker → bible-api.com → Response formatted and returned
-```
-
-**External dependency:** All Bible data comes from `https://bible-api.com/{reference}?translation={code}`
+**Bible API endpoints used:**
+- `GET /v1/verses/{reference}?translation=...` - Fetch verses
+- `GET /v1/search?q=...&book=...&testament=...&limit=...` - Full-text search
+- `GET /v1/books?testament=...` - List books with chapter counts
+- `GET /v1/translations` - List available translations
+- `GET /v1/random?translation=...&book=...&testament=...` - Random verse
 
 ## Adding New Tools
-
-Register tools using the `server.tool()` pattern with Zod schemas for input validation:
 
 ```typescript
 server.tool(
   "tool_name",
-  "Description of what it does",
-  { param: z.string().describe("Parameter description") },
+  "Description",
+  { param: z.string().describe("...") },
   async ({ param }) => {
+    const data = await fetchApi<ResponseType>(`/endpoint?param=${param}`);
+    if (isError(data)) {
+      return { content: [{ type: "text", text: `Error: ${data.error}` }], isError: true };
+    }
     return { content: [{ type: "text", text: "response" }] };
   }
 );
@@ -44,4 +50,4 @@ server.tool(
 
 ## Version Constraints
 
-The `@modelcontextprotocol/sdk` version must match the version bundled in `agents` package (currently 1.25.2) to avoid type conflicts.
+The `@modelcontextprotocol/sdk` version must match the version bundled in `agents` package (currently 1.25.2).

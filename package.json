@@ -1,7 +1,7 @@
 {
   "name": "bible-mcp",
-  "version": "1.0.0",
-  "description": "A Bible MCP server powered by bible-api.com, hosted on Cloudflare Workers",
+  "version": "2.0.0",
+  "description": "A Bible MCP server with search capabilities, powered by a custom Bible API on Cloudflare Workers + D1",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
