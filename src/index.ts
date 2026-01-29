@@ -11,7 +11,7 @@ const LANDING_PAGE_HTML = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bible MCP - Bible Tools for Claude.ai</title>
+  <title>Bible MCP - Bible Verse Lookup &amp; Search</title>
   <style>
     :root {
       --bg-primary: #0d1117;
@@ -282,6 +282,54 @@ const LANDING_PAGE_HTML = `<!DOCTYPE html>
       text-decoration: underline;
     }
 
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .tab {
+      padding: 0.6rem 1.2rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px 6px 0 0;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+      border-bottom: none;
+      margin-bottom: -1px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .tab:hover {
+      color: var(--text-primary);
+      background: var(--bg-secondary);
+    }
+
+    .tab.active {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--bg-secondary);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .tab-panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 0 8px 8px 8px;
+      padding: 1.5rem;
+    }
+
     @media (max-width: 600px) {
       .container {
         padding: 1rem;
@@ -299,6 +347,19 @@ const LANDING_PAGE_HTML = `<!DOCTYPE html>
       .copy-btn {
         text-align: center;
       }
+
+      .tabs {
+        flex-direction: column;
+      }
+
+      .tab {
+        border-radius: 6px;
+        margin-bottom: 0;
+      }
+
+      .tab-panel {
+        border-radius: 8px;
+      }
     }
   </style>
 </head>
@@ -306,35 +367,69 @@ const LANDING_PAGE_HTML = `<!DOCTYPE html>
   <div class="container">
     <header>
       <h1>📖 Bible MCP</h1>
-      <p class="subtitle">Bible tools for Claude.ai</p>
+      <p class="subtitle">Bible verse lookup &amp; search for AI assistants</p>
       <span class="badge">Public MCP Server</span>
     </header>
 
     <section>
       <h2>🚀 Quick Start</h2>
-      <div class="card">
-        <p style="margin-bottom: 1rem; color: var(--text-secondary);">Add this URL to Claude.ai to enable Bible tools:</p>
-        <div class="url-box">
-          <code id="mcp-url">https://bible-mcp.dws-cloud.com/mcp</code>
-          <button class="copy-btn" onclick="copyUrl()">Copy</button>
+
+      <div class="url-box" style="margin-bottom: 1rem;">
+        <code id="mcp-url">https://bible-mcp.dws-cloud.com/mcp</code>
+        <button class="copy-btn" onclick="copyUrl()">Copy</button>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('claude')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4.603 15.227c-.534.765-.534 1.796 0 2.546l3.47 4.962c.535.765 1.403 1.265 2.386 1.265h3.082c.983 0 1.851-.5 2.386-1.265l3.47-4.962c.534-.75.534-1.781 0-2.546l-3.47-4.962c-.535-.765-1.403-1.265-2.386-1.265h-3.082c-.983 0-1.851.5-2.386 1.265l-3.47 4.962z"/></svg>
+          Claude
+        </button>
+        <button class="tab" onclick="showTab('chatgpt')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.896zm16.597 3.855l-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08-4.778 2.758a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z"/></svg>
+          ChatGPT
+        </button>
+      </div>
+
+      <div class="tab-panel">
+        <div id="claude-tab" class="tab-content active">
+          <div class="steps">
+            <div class="step">
+              <span class="step-number">1</span>
+              <span class="step-content">Go to <strong>Claude.ai Settings → Connectors</strong></span>
+            </div>
+            <div class="step">
+              <span class="step-number">2</span>
+              <span class="step-content">Click <strong>"Add Connector"</strong> and select <strong>"MCP Server"</strong></span>
+            </div>
+            <div class="step">
+              <span class="step-number">3</span>
+              <span class="step-content">Paste the URL above and click <strong>"Add"</strong></span>
+            </div>
+            <div class="step">
+              <span class="step-number">4</span>
+              <span class="step-content">Start asking Claude about the Bible!</span>
+            </div>
+          </div>
         </div>
 
-        <div class="steps" style="margin-top: 1.5rem;">
-          <div class="step">
-            <span class="step-number">1</span>
-            <span class="step-content">Go to <strong>Claude.ai Settings → Connectors</strong></span>
-          </div>
-          <div class="step">
-            <span class="step-number">2</span>
-            <span class="step-content">Click <strong>"Add Connector"</strong> and select <strong>"MCP Server"</strong></span>
-          </div>
-          <div class="step">
-            <span class="step-number">3</span>
-            <span class="step-content">Paste the URL above and click <strong>"Add"</strong></span>
-          </div>
-          <div class="step">
-            <span class="step-number">4</span>
-            <span class="step-content">Start asking Claude about the Bible!</span>
+        <div id="chatgpt-tab" class="tab-content">
+          <div class="steps">
+            <div class="step">
+              <span class="step-number">1</span>
+              <span class="step-content">Go to <strong>ChatGPT Settings → Apps & Connectors</strong></span>
+            </div>
+            <div class="step">
+              <span class="step-number">2</span>
+              <span class="step-content">Click <strong>"Add"</strong> and select <strong>"Connect an MCP Server"</strong></span>
+            </div>
+            <div class="step">
+              <span class="step-number">3</span>
+              <span class="step-content">Paste the URL above and click <strong>"Connect"</strong></span>
+            </div>
+            <div class="step">
+              <span class="step-number">4</span>
+              <span class="step-content">Start asking ChatGPT about the Bible!</span>
+            </div>
           </div>
         </div>
       </div>
@@ -449,6 +544,16 @@ const LANDING_PAGE_HTML = `<!DOCTYPE html>
           btn.textContent = 'Copy';
         }, 2000);
       });
+    }
+
+    function showTab(tabName) {
+      // Update tab buttons
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+
+      // Update tab content
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      document.getElementById(tabName + '-tab').classList.add('active');
     }
   </script>
 </body>
