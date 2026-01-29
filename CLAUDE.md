@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Live URLs
+
+- **Primary:** `https://bible-mcp.dws-cloud.com/mcp`
+- **Backup:** `https://bible-mcp.dws-cloud.workers.dev/mcp`
+- **Bible API:** `https://bible-api.dws-cloud.com`
+
 ## Commands
 
 ```bash
