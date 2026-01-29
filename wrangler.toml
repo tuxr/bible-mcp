@@ -1,0 +1,5 @@
+# Cloudflare Workers configuration for Bible MCP Server
+name = "bible-mcp"
+main = "src/index.ts"
+compatibility_date = "2025-01-28"
+compatibility_flags = ["nodejs_compat"]
