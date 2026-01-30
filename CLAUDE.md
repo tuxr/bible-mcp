@@ -66,6 +66,41 @@ server.tool(
 );
 ```
 
+## Adding New Prompts
+
+MCP Prompts are user-invokable templates that appear in the Claude.ai prompt picker. They expand into pre-written messages that include formatting/presentation instructions.
+
+```typescript
+import type { GetPromptResult } from "@modelcontextprotocol/sdk/types.js";
+
+server.registerPrompt(
+  "prompt-name",
+  {
+    title: "Human-Readable Title",
+    description: "Description shown in prompt picker",
+    argsSchema: {
+      param: z.string().describe("Parameter description"),
+    },
+  },
+  ({ param }): GetPromptResult => ({
+    messages: [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: `The prompt message with ${param}`,
+        },
+      },
+    ],
+  })
+);
+```
+
+**Current prompts:**
+- `daily-verse` - Random verse with reflection prompts
+- `study-passage` - Deep dive into a passage with context
+- `topical-search` - Find verses on a specific topic
+
 ## Input Normalization
 
 All enum parameters use `z.preprocess` to normalize case before validation:

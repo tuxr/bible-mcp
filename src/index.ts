@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createMcpHandler } from "agents/mcp";
 import { z } from "zod";
+import type { GetPromptResult } from "@modelcontextprotocol/sdk/types.js";
 import { env } from "cloudflare:workers";
 
 // =============================================================================
@@ -543,6 +544,28 @@ const LANDING_PAGE_HTML = `<!DOCTYPE html>
       </div>
     </section>
 
+    <section>
+      <h2>📋 Suggested Project Instructions</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;">For the best experience, copy this into your Claude.ai Project instructions:</p>
+
+      <div class="card" style="background: var(--bg-tertiary); position: relative;">
+        <pre id="instructions-text" style="white-space: pre-wrap; font-size: 0.85rem; color: var(--text-primary); margin: 0; line-height: 1.6;">When using Bible tools, always display the complete verse text prominently. Format verses like this:
+
+> **John 3:16** (KJV)
+> For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.
+
+For passages with multiple verses, show verse numbers:
+
+> **Psalm 23:1-3** (WEB)
+> ¹ The LORD is my shepherd; I shall not want.
+> ² He makes me lie down in green pastures. He leads me beside still waters.
+> ³ He restores my soul.
+
+Never paraphrase or summarize verses—always show the exact text. You may add reflections, context, or application after displaying the verse.</pre>
+        <button class="copy-btn" onclick="copyInstructions()" style="margin-top: 1rem;">Copy Instructions</button>
+      </div>
+    </section>
+
     <footer>
       <p>Powered by <a href="https://bible-api.dws-cloud.com">Bible API</a></p>
       <p style="margin-top: 0.5rem;">Built with the <a href="https://modelcontextprotocol.io">Model Context Protocol</a></p>
@@ -553,10 +576,21 @@ const LANDING_PAGE_HTML = `<!DOCTYPE html>
     function copyUrl() {
       const url = document.getElementById('mcp-url').textContent;
       navigator.clipboard.writeText(url).then(() => {
-        const btn = document.querySelector('.copy-btn');
+        const btn = document.querySelector('.url-box .copy-btn');
         btn.textContent = 'Copied!';
         setTimeout(() => {
           btn.textContent = 'Copy';
+        }, 2000);
+      });
+    }
+
+    function copyInstructions() {
+      const text = document.getElementById('instructions-text').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = event.target;
+        btn.textContent = 'Copied!';
+        setTimeout(() => {
+          btn.textContent = 'Copy Instructions';
         }, 2000);
       });
     }
@@ -985,6 +1019,122 @@ Examples:
     ].join("\n");
 
     return { content: [{ type: "text", text: output }] };
+  }
+);
+
+// =============================================================================
+// PROMPT: Daily Verse
+// =============================================================================
+server.registerPrompt(
+  "daily-verse",
+  {
+    title: "Daily Verse",
+    description: "Get a random verse with reflection prompts for your day",
+    argsSchema: {
+      testament: z.preprocess(
+        (val) => (typeof val === "string" ? val.toUpperCase() : val),
+        z.enum(["OT", "NT", "AP"]).optional()
+      ).describe("Filter by testament: OT (Old), NT (New), AP (Apocrypha)"),
+    },
+  },
+  ({ testament }): GetPromptResult => {
+    const testamentText = testament === "OT" ? " from the Old Testament" :
+                          testament === "NT" ? " from the New Testament" :
+                          testament === "AP" ? " from the Apocrypha" : "";
+
+    return {
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: `Get me a random verse${testamentText} for today.
+
+Please:
+1. Display the complete verse in a blockquote with the reference and translation
+2. Share a brief reflection on its meaning
+3. Suggest one way I might apply it today`,
+          },
+        },
+      ],
+    };
+  }
+);
+
+// =============================================================================
+// PROMPT: Study Passage
+// =============================================================================
+server.registerPrompt(
+  "study-passage",
+  {
+    title: "Study a Passage",
+    description: "Deep dive into a Bible passage with context and analysis",
+    argsSchema: {
+      reference: z.string().describe("Bible reference (e.g., 'Romans 8:28-39', 'Psalm 23')"),
+      translation: z.preprocess(
+        (val) => (typeof val === "string" ? val.toLowerCase() : val),
+        z.enum(["web", "kjv"]).optional()
+      ).describe("Translation: 'web' (default) or 'kjv'"),
+    },
+  },
+  ({ reference, translation }): GetPromptResult => ({
+    messages: [
+      {
+        role: "user",
+        content: {
+          type: "text",
+          text: `I want to study ${reference}${translation ? ` in ${translation.toUpperCase()}` : ""}.
+
+Please:
+1. Display the complete passage text in a blockquote, with verse numbers
+2. Explain the historical and literary context
+3. Highlight key themes and important words
+4. Share how this passage connects to other parts of Scripture
+5. Suggest questions for personal reflection`,
+        },
+      },
+    ],
+  })
+);
+
+// =============================================================================
+// PROMPT: Topical Search
+// =============================================================================
+server.registerPrompt(
+  "topical-search",
+  {
+    title: "Topical Search",
+    description: "Find and explore verses on a specific topic",
+    argsSchema: {
+      topic: z.string().describe("Topic to search (e.g., 'forgiveness', 'faith', 'love')"),
+      testament: z.preprocess(
+        (val) => (typeof val === "string" ? val.toUpperCase() : val),
+        z.enum(["OT", "NT", "AP"]).optional()
+      ).describe("Filter by testament: OT (Old), NT (New), AP (Apocrypha)"),
+    },
+  },
+  ({ topic, testament }): GetPromptResult => {
+    const testamentText = testament === "OT" ? " in the Old Testament" :
+                          testament === "NT" ? " in the New Testament" :
+                          testament === "AP" ? " in the Apocrypha" : "";
+
+    return {
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: `Search the Bible for verses about "${topic}"${testamentText}.
+
+Please:
+1. Find relevant verses using the search tool
+2. Display each verse in full with its reference in a blockquote
+3. Group them by theme or book if helpful
+4. Briefly explain how each verse relates to the topic`,
+          },
+        },
+      ],
+    };
   }
 );
 
