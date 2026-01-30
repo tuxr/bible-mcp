@@ -7,6 +7,10 @@ compatibility_flags = ["nodejs_compat"]
 # Keep workers.dev subdomain active as backup
 workers_dev = true
 
+# Enable observability for logs and analytics in Cloudflare dashboard
+[observability]
+enabled = true
+
 # Custom domain (configured via Cloudflare dashboard)
 # https://bible-mcp.dws-cloud.com/mcp
 [[routes]]

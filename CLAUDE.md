@@ -30,10 +30,12 @@ MCP Client (Claude.ai) → MCP Worker ──[Service Binding]──► Bible API
 
 **Routes:**
 - `/` - Landing page with setup instructions and tool documentation
-- `/mcp` - MCP protocol endpoint (for Claude.ai connectors)
+- `/mcp` - MCP protocol endpoint (for Claude.ai/ChatGPT connectors)
+- `/favicon.svg`, `/favicon.ico` - Book icon favicon
 - `/api`, `/connect` - Redirect to `/mcp`
 
 **Key components in `src/index.ts`:**
+- `FAVICON_SVG` - Inline SVG book icon served at `/favicon.svg`
 - `LANDING_PAGE_HTML` - Static HTML landing page
 - `env.BIBLE_API` - Service binding to the Bible API worker (configured in `wrangler.toml`)
 - `fetchApi<T>()` - Uses the service binding's `.fetch()` method
@@ -70,3 +72,7 @@ The `@modelcontextprotocol/sdk` version must match the version bundled in `agent
 ## Local Development Note
 
 Service bindings only work when deployed. For local dev, you may need to temporarily switch to direct HTTP fetch or use `wrangler dev --remote`.
+
+## Observability
+
+Logs and metrics are enabled via `[observability]` in `wrangler.toml`. View in Cloudflare dashboard under Workers & Pages → bible-mcp → Logs/Metrics.

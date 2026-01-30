@@ -4,6 +4,21 @@ import { z } from "zod";
 import { env } from "cloudflare:workers";
 
 // =============================================================================
+// Favicon SVG - Simple book icon
+// =============================================================================
+const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#1a1a2e"/>
+  <g fill="#e6edf3">
+    <!-- Left page -->
+    <path d="M12 16c8-4 16-2 20 0v32c-4-2-12-3-20 0V16z" opacity="0.9"/>
+    <!-- Right page -->
+    <path d="M52 16c-8-4-16-2-20 0v32c4-2 12-3 20 0V16z" opacity="0.7"/>
+    <!-- Spine -->
+    <rect x="30" y="14" width="4" height="36" rx="1" opacity="0.5"/>
+  </g>
+</svg>`;
+
+// =============================================================================
 // Landing Page HTML
 // =============================================================================
 const LANDING_PAGE_HTML = `<!DOCTYPE html>
@@ -12,6 +27,7 @@ const LANDING_PAGE_HTML = `<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bible MCP - Bible Verse Lookup &amp; Search</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <style>
     :root {
       --bg-primary: #0d1117;
@@ -880,6 +896,16 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
+
+    // Favicon
+    if (path === "/favicon.svg" || path === "/favicon.ico") {
+      return new Response(FAVICON_SVG, {
+        headers: {
+          "Content-Type": "image/svg+xml",
+          "Cache-Control": "public, max-age=86400",
+        },
+      });
+    }
 
     // Landing page at root
     if (path === "/" || path === "") {
