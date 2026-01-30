@@ -3,6 +3,7 @@ import { createMcpHandler } from "agents/mcp";
 import { z } from "zod";
 import type { GetPromptResult } from "@modelcontextprotocol/sdk/types.js";
 import { env } from "cloudflare:workers";
+import { registerAppTool, registerAppResource, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
 
 // =============================================================================
 // Favicon SVG - Simple book icon
@@ -577,6 +578,338 @@ const LANDING_PAGE_HTML = `<!DOCTYPE html>
 `;
 
 // =============================================================================
+// Bible Reader App HTML (MCP Apps)
+// =============================================================================
+const BIBLE_READER_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bible Reader</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #1a1a2e;
+      --bg-card: #16213e;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --border: #30363d;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 1rem;
+      min-height: 100vh;
+    }
+
+    body.light {
+      --bg: #ffffff;
+      --bg-card: #f6f8fa;
+      --text: #1f2328;
+      --text-muted: #656d76;
+      --accent: #0969da;
+      --border: #d0d7de;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .reference {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .translation-toggle {
+      display: flex;
+      gap: 0.25rem;
+      background: var(--bg);
+      border-radius: 6px;
+      padding: 0.25rem;
+    }
+
+    .translation-btn {
+      padding: 0.375rem 0.75rem;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+
+    .translation-btn.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    .translation-btn:hover:not(.active) {
+      color: var(--text);
+    }
+
+    .verses {
+      line-height: 1.8;
+      font-size: 1.05rem;
+      margin: 1rem 0;
+    }
+
+    .verse-num {
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 600;
+      vertical-align: super;
+      margin-right: 0.25rem;
+    }
+
+    .nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      gap: 0.5rem;
+    }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.15s;
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .copy-btn {
+      padding: 0.5rem;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .copy-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .loading {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 2rem;
+    }
+
+    .error {
+      color: #f85149;
+      text-align: center;
+      padding: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="content" class="loading">Loading...</div>
+  </div>
+
+  <script type="module">
+    import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@1.0.1/dist/src/app-with-deps.js";
+
+    const app = new App({ name: "Bible Reader", version: "1.0.0" });
+    const contentEl = document.getElementById("content");
+
+    let currentData = null;
+    let currentTranslation = "web";
+
+    // Safe text escaping to prevent XSS
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function render() {
+      if (!currentData) {
+        contentEl.textContent = "Loading...";
+        contentEl.className = "loading";
+        return;
+      }
+
+      if (currentData.error) {
+        contentEl.textContent = currentData.error;
+        contentEl.className = "error";
+        return;
+      }
+
+      contentEl.className = "";
+      const { reference, translation, verses, navigation } = currentData;
+
+      // Build content safely
+      const header = document.createElement("div");
+      header.className = "header";
+
+      const refSpan = document.createElement("span");
+      refSpan.className = "reference";
+      refSpan.textContent = reference;
+      header.appendChild(refSpan);
+
+      const toggleDiv = document.createElement("div");
+      toggleDiv.className = "translation-toggle";
+      ["web", "kjv"].forEach(t => {
+        const btn = document.createElement("button");
+        btn.className = "translation-btn" + (currentTranslation === t ? " active" : "");
+        btn.textContent = t.toUpperCase();
+        btn.addEventListener("click", () => switchTranslation(t));
+        toggleDiv.appendChild(btn);
+      });
+      header.appendChild(toggleDiv);
+
+      const versesDiv = document.createElement("div");
+      versesDiv.className = "verses";
+      verses.forEach(v => {
+        const num = document.createElement("span");
+        num.className = "verse-num";
+        num.textContent = v.verse;
+        versesDiv.appendChild(num);
+        versesDiv.appendChild(document.createTextNode(v.text + " "));
+      });
+
+      const navBar = document.createElement("div");
+      navBar.className = "nav-bar";
+
+      const prevBtn = document.createElement("button");
+      prevBtn.className = "nav-btn";
+      prevBtn.disabled = !navigation?.previous;
+      prevBtn.textContent = navigation?.previous
+        ? "← " + navigation.previous.book + " " + navigation.previous.chapter
+        : "← Previous";
+      prevBtn.addEventListener("click", () => {
+        if (navigation?.previous) loadChapter(navigation.previous.book, navigation.previous.chapter);
+      });
+
+      const copyBtn = document.createElement("button");
+      copyBtn.className = "copy-btn";
+      copyBtn.title = "Copy verses";
+      copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>';
+      copyBtn.addEventListener("click", () => copyVerses(copyBtn));
+
+      const nextBtn = document.createElement("button");
+      nextBtn.className = "nav-btn";
+      nextBtn.disabled = !navigation?.next;
+      nextBtn.textContent = navigation?.next
+        ? navigation.next.book + " " + navigation.next.chapter + " →"
+        : "Next →";
+      nextBtn.addEventListener("click", () => {
+        if (navigation?.next) loadChapter(navigation.next.book, navigation.next.chapter);
+      });
+
+      navBar.appendChild(prevBtn);
+      navBar.appendChild(copyBtn);
+      navBar.appendChild(nextBtn);
+
+      contentEl.replaceChildren(header, versesDiv, navBar);
+    }
+
+    async function loadChapter(book, chapter) {
+      contentEl.textContent = "Loading...";
+      contentEl.className = "loading";
+      try {
+        const result = await app.callServerTool({
+          name: "read_bible",
+          arguments: { book, chapter: Number(chapter), translation: currentTranslation }
+        });
+        if (result.structuredContent) {
+          currentData = result.structuredContent;
+          render();
+        }
+      } catch (err) {
+        contentEl.textContent = "Failed to load chapter";
+        contentEl.className = "error";
+      }
+    }
+
+    async function switchTranslation(translation) {
+      if (translation === currentTranslation) return;
+      currentTranslation = translation;
+      if (currentData?.book) {
+        const bookId = currentData.book.id || currentData.book;
+        loadChapter(bookId, currentData.chapter);
+      }
+    }
+
+    function copyVerses(btn) {
+      if (!currentData) return;
+      const text = currentData.reference + " (" + currentData.translation.name + ")\\n\\n" +
+        currentData.verses.map(v => v.verse + ". " + v.text).join("\\n");
+      navigator.clipboard.writeText(text);
+      btn.textContent = "✓";
+      setTimeout(() => {
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>';
+      }, 1500);
+    }
+
+    app.ontoolresult = (result) => {
+      if (result.structuredContent) {
+        currentData = result.structuredContent;
+        currentTranslation = result.structuredContent.translation?.id || "web";
+        render();
+      }
+    };
+
+    app.onhostcontextchanged = (ctx) => {
+      if (ctx.theme) {
+        document.body.classList.toggle("light", ctx.theme === "light");
+      }
+    };
+
+    await app.connect();
+
+    const ctx = app.getHostContext();
+    if (ctx?.theme) {
+      document.body.classList.toggle("light", ctx.theme === "light");
+    }
+  </script>
+</body>
+</html>`;
+
+// =============================================================================
 // Types
 // =============================================================================
 
@@ -1103,6 +1436,97 @@ Please:
       ],
     };
   }
+);
+
+// =============================================================================
+// MCP APP: Interactive Bible Reader
+// =============================================================================
+const BIBLE_READER_RESOURCE_URI = "ui://bible/reader.html";
+
+registerAppTool(
+  server,
+  "read_bible",
+  {
+    title: "Bible Reader",
+    description: "Interactive Bible reader with chapter navigation and translation switching",
+    inputSchema: {
+      book: z.string().describe("Book name or ID (e.g., 'Genesis', 'PSA', 'ROM')"),
+      chapter: z.number().describe("Chapter number"),
+      translation: z.preprocess(
+        (val) => (typeof val === "string" ? val.toLowerCase() : val),
+        z.enum(["web", "kjv"]).optional()
+      ).describe("Translation (default: web)"),
+    },
+    _meta: {
+      ui: {
+        resourceUri: BIBLE_READER_RESOURCE_URI,
+        csp: {
+          scriptDomains: ["https://unpkg.com"],
+        },
+      },
+    },
+  },
+  async (args: { book: string; chapter: number; translation?: string }) => {
+    const { book, chapter, translation = "web" } = args;
+    const params = new URLSearchParams();
+    params.set("translation", translation.toLowerCase());
+
+    const path = `/chapters/${encodeURIComponent(book)}/${chapter}?${params.toString()}`;
+    const data = await fetchApi<ChapterResponse>(path);
+
+    if (isError(data)) {
+      return {
+        content: [{ type: "text", text: `Error: ${data.error}` }],
+        structuredContent: { error: data.error },
+        isError: true,
+      };
+    }
+
+    // Text fallback for non-MCP-Apps clients
+    const verseLines = data.verses.map((v) => `${v.verse}. ${v.text}`);
+    const textOutput = [
+      `📖 ${data.book.name} ${data.chapter}`,
+      `Translation: ${data.translation.name}`,
+      "",
+      ...verseLines,
+    ].join("\n");
+
+    // Structured content for the UI
+    return {
+      content: [{ type: "text", text: textOutput }],
+      structuredContent: {
+        reference: `${data.book.name} ${data.chapter}`,
+        book: data.book,
+        chapter: data.chapter,
+        translation: data.translation,
+        verses: data.verses,
+        navigation: data.navigation,
+      },
+    };
+  }
+);
+
+registerAppResource(
+  server,
+  "Bible Reader",
+  BIBLE_READER_RESOURCE_URI,
+  { mimeType: RESOURCE_MIME_TYPE },
+  async () => ({
+    contents: [
+      {
+        uri: BIBLE_READER_RESOURCE_URI,
+        mimeType: RESOURCE_MIME_TYPE,
+        text: BIBLE_READER_HTML,
+        _meta: {
+          ui: {
+            csp: {
+              scriptDomains: ["https://unpkg.com"],
+            },
+          },
+        },
+      },
+    ],
+  })
 );
 
 // =============================================================================

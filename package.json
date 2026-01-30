@@ -9,6 +9,7 @@
     "inspect": "npx @modelcontextprotocol/inspector@latest"
   },
   "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.0.1",
     "@modelcontextprotocol/sdk": "1.25.2",
     "agents": "^0.3.6",
     "zod": "^3.24.2"
