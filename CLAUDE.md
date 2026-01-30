@@ -206,6 +206,8 @@ registerAppResource(
 </script>
 ```
 
+**Cross-browser transparency**: Add `<meta name="color-scheme" content="dark light">` to prevent Safari from rendering transparent backgrounds as white in iframes.
+
 ## Input Normalization
 
 All enum parameters use `z.preprocess` to normalize case before validation:
