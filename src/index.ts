@@ -779,6 +779,22 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
       padding: 1rem;
     }
 
+    .error button {
+      margin-top: 0.5rem;
+      padding: 0.375rem 0.75rem;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .error button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
     /* Menu - slide-in side panel */
     .menu-backdrop {
       display: none;
@@ -1139,19 +1155,37 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
       contentEl.replaceChildren(header, versesDiv, navBar);
     }
 
+    // Retry helper for cold start resilience
+    async function withRetry(fn, retries = 1) {
+      let lastError;
+      for (let i = 0; i <= retries; i++) {
+        try {
+          return await fn();
+        } catch (err) {
+          lastError = err;
+          if (i < retries) {
+            await new Promise(r => setTimeout(r, 500)); // Brief delay before retry
+          }
+        }
+      }
+      throw lastError;
+    }
+
     async function loadReference(reference) {
       contentEl.innerHTML = '<div class="loading">Loading...</div>';
       try {
-        const result = await app.callServerTool({
-          name: "read_bible",
-          arguments: { reference, translation: currentTranslation }
+        const result = await withRetry(async () => {
+          return await app.callServerTool({
+            name: "read_bible",
+            arguments: { reference, translation: currentTranslation }
+          });
         });
         if (result.structuredContent) {
           currentData = result.structuredContent;
           render();
         }
       } catch (err) {
-        contentEl.innerHTML = '<div class="error">Failed to load passage</div>';
+        contentEl.innerHTML = '<div class="error">Failed to load passage. <button onclick="loadReference(\\'' + reference.replace(/'/g, "\\\\'") + '\\')">Retry</button></div>';
       }
     }
 
@@ -1193,16 +1227,18 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
     async function loadBookList() {
       bookListEl.innerHTML = '<div class="loading">Loading books...</div>';
       try {
-        const result = await app.callServerTool({
-          name: "list_books",
-          arguments: {}
+        const result = await withRetry(async () => {
+          return await app.callServerTool({
+            name: "list_books",
+            arguments: {}
+          });
         });
         // Parse the text response to extract book data
         const text = result.content?.[0]?.text || "";
         bookListCache = parseBookList(text);
         renderBookList();
       } catch (err) {
-        bookListEl.innerHTML = '<div class="error">Failed to load books</div>';
+        bookListEl.innerHTML = '<div class="error">Failed to load books. <button onclick="loadBookList()">Retry</button></div>';
       }
     }
 
