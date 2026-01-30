@@ -52,16 +52,20 @@ MCP Client (Claude.ai) → MCP Worker ──[Service Binding]──► Bible API
 
 ## Current Tools & Prompts
 
+**Tool Purpose Division:**
+- **Presentation tools** → Display Scripture to the user with interactive UI
+- **Context tools** → Gather information for analysis and grounding discussion
+
 **Tools** (model-invoked):
-| Tool | Description |
-|------|-------------|
-| `get_verse` | Retrieve verses by reference (e.g., "John 3:16", "Psalm 23") |
-| `get_chapter` | Get full chapter with prev/next navigation |
-| `search_bible` | Full-text search with book/testament filters |
-| `list_books` | List all books with chapter counts |
-| `list_translations` | List available translations (WEB, KJV) |
-| `get_random_verse` | Random verse with optional filters |
-| `read_bible` | **MCP App** - Interactive Bible reader with chapter navigation and translation toggle |
+| Tool | Purpose | Description |
+|------|---------|-------------|
+| `read_bible` | **Present** | Interactive Bible reader UI - accepts verses ("John 3:16"), ranges ("Romans 8:28-39"), or chapters ("Genesis 1") |
+| `get_verse` | Context | Retrieve verse text for analysis or grounding |
+| `get_chapter` | Context | Get full chapter text for analysis |
+| `search_bible` | Context | Find verses by keyword for research |
+| `get_random_verse` | Context | Get random verse for inspiration |
+| `list_books` | Reference | List all books with chapter counts |
+| `list_translations` | Reference | List available translations (WEB, KJV) |
 
 **Prompts** (user-invoked templates):
 | Prompt | Description |
@@ -120,6 +124,11 @@ server.registerPrompt(
 ## MCP Apps (Interactive UIs)
 
 MCP Apps render interactive HTML interfaces directly in Claude.ai. The `read_bible` tool demonstrates this pattern.
+
+**`read_bible` accepts flexible references:**
+- Verses: `"John 3:16"` → Shows verse with "View John 3" button
+- Ranges: `"Romans 8:28-39"` → Shows range with "View Romans 8" button
+- Chapters: `"Genesis 1"` → Shows chapter with prev/next navigation
 
 **Key components:**
 - `registerAppTool()` - Registers a tool with UI metadata (`_meta.ui.resourceUri`)

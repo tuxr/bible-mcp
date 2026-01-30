@@ -716,6 +716,12 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
       cursor: not-allowed;
     }
 
+    .nav-btn.center {
+      flex: 1;
+      justify-content: center;
+      max-width: 200px;
+    }
+
     .copy-btn {
       padding: 0.5rem;
       border: 1px solid var(--border);
@@ -779,7 +785,7 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
       }
 
       contentEl.className = "";
-      const { reference, translation, verses, navigation } = currentData;
+      const { reference, translation, verses, viewType, navigation, chapterContext } = currentData;
 
       // Build content safely
       const header = document.createElement("div");
@@ -814,53 +820,74 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
       const navBar = document.createElement("div");
       navBar.className = "nav-bar";
 
-      const prevBtn = document.createElement("button");
-      prevBtn.className = "nav-btn";
-      prevBtn.disabled = !navigation?.previous;
-      prevBtn.textContent = navigation?.previous
-        ? "← " + navigation.previous.book + " " + navigation.previous.chapter
-        : "← Previous";
-      prevBtn.addEventListener("click", () => {
-        if (navigation?.previous) loadChapter(navigation.previous.book, navigation.previous.chapter);
-      });
+      if (viewType === "chapter" && navigation) {
+        // Chapter view: prev/next chapter navigation
+        const prevBtn = document.createElement("button");
+        prevBtn.className = "nav-btn";
+        prevBtn.disabled = !navigation.previous;
+        prevBtn.textContent = navigation.previous
+          ? "← " + navigation.previous.book + " " + navigation.previous.chapter
+          : "← Previous";
+        prevBtn.addEventListener("click", () => {
+          if (navigation.previous) loadReference(navigation.previous.book + " " + navigation.previous.chapter);
+        });
 
-      const copyBtn = document.createElement("button");
-      copyBtn.className = "copy-btn";
-      copyBtn.title = "Copy verses";
-      copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>';
-      copyBtn.addEventListener("click", () => copyVerses(copyBtn));
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "copy-btn";
+        copyBtn.title = "Copy verses";
+        copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>';
+        copyBtn.addEventListener("click", () => copyVerses(copyBtn));
 
-      const nextBtn = document.createElement("button");
-      nextBtn.className = "nav-btn";
-      nextBtn.disabled = !navigation?.next;
-      nextBtn.textContent = navigation?.next
-        ? navigation.next.book + " " + navigation.next.chapter + " →"
-        : "Next →";
-      nextBtn.addEventListener("click", () => {
-        if (navigation?.next) loadChapter(navigation.next.book, navigation.next.chapter);
-      });
+        const nextBtn = document.createElement("button");
+        nextBtn.className = "nav-btn";
+        nextBtn.disabled = !navigation.next;
+        nextBtn.textContent = navigation.next
+          ? navigation.next.book + " " + navigation.next.chapter + " →"
+          : "Next →";
+        nextBtn.addEventListener("click", () => {
+          if (navigation.next) loadReference(navigation.next.book + " " + navigation.next.chapter);
+        });
 
-      navBar.appendChild(prevBtn);
-      navBar.appendChild(copyBtn);
-      navBar.appendChild(nextBtn);
+        navBar.appendChild(prevBtn);
+        navBar.appendChild(copyBtn);
+        navBar.appendChild(nextBtn);
+      } else {
+        // Verse view: "View Chapter" button
+        if (chapterContext) {
+          const viewChapterBtn = document.createElement("button");
+          viewChapterBtn.className = "nav-btn center";
+          viewChapterBtn.textContent = "View " + chapterContext.bookName + " " + chapterContext.chapter;
+          viewChapterBtn.addEventListener("click", () => {
+            loadReference(chapterContext.bookName + " " + chapterContext.chapter);
+          });
+          navBar.appendChild(viewChapterBtn);
+        }
+
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "copy-btn";
+        copyBtn.title = "Copy verses";
+        copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>';
+        copyBtn.addEventListener("click", () => copyVerses(copyBtn));
+        navBar.appendChild(copyBtn);
+      }
 
       contentEl.replaceChildren(header, versesDiv, navBar);
     }
 
-    async function loadChapter(book, chapter) {
+    async function loadReference(reference) {
       contentEl.textContent = "Loading...";
       contentEl.className = "loading";
       try {
         const result = await app.callServerTool({
           name: "read_bible",
-          arguments: { book, chapter: Number(chapter), translation: currentTranslation }
+          arguments: { reference, translation: currentTranslation }
         });
         if (result.structuredContent) {
           currentData = result.structuredContent;
           render();
         }
       } catch (err) {
-        contentEl.textContent = "Failed to load chapter";
+        contentEl.textContent = "Failed to load passage";
         contentEl.className = "error";
       }
     }
@@ -868,9 +895,9 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
     async function switchTranslation(translation) {
       if (translation === currentTranslation) return;
       currentTranslation = translation;
-      if (currentData?.book) {
-        const bookId = currentData.book.id || currentData.book;
-        loadChapter(bookId, currentData.chapter);
+      // Reload current reference with new translation
+      if (currentData?.reference) {
+        loadReference(currentData.reference);
       }
     }
 
@@ -1008,14 +1035,12 @@ const server = new McpServer({
 // =============================================================================
 server.tool(
   "get_verse",
-  `Retrieve a Bible verse or passage by reference.
+  `Retrieve verse text for context, analysis, or grounding discussion.
 
-Examples:
-- "John 3:16" - single verse
-- "Romans 8:28-39" - verse range
-- "Psalm 23" - entire chapter
-- "Genesis 1:1-2:3" - multi-chapter range
-- "Tobit 1:1" - Apocrypha supported`,
+Use this to gather Scripture content for building context or informing responses.
+For presenting verses to the user as a visual reference, use read_bible instead.
+
+Examples: "John 3:16", "Romans 8:28-39", "Psalm 23"`,
   {
     reference: z.string().describe("Bible reference (e.g., 'John 3:16', 'Psalm 23', 'Romans 8:28-39')"),
     translation: z.preprocess(
@@ -1054,14 +1079,12 @@ Examples:
 // =============================================================================
 server.tool(
   "get_chapter",
-  `Get a full Bible chapter with navigation hints for sequential reading.
+  `Get full chapter text for context or analysis.
 
-Returns all verses in the chapter plus previous/next chapter references.
+Use this to gather chapter content for building context or informing responses.
+For presenting a chapter to the user as a visual reference, use read_bible instead.
 
-Examples:
-- "Genesis", 1 - First chapter of Genesis
-- "PSA", 23 - Psalm 23
-- "ROM", 8, "kjv" - Romans 8 in KJV`,
+Examples: ("Genesis", 1), ("PSA", 23), ("ROM", 8)`,
   {
     book: z.string().describe("Book name, abbreviation, or ID (e.g., 'Genesis', 'Gen', 'GEN')"),
     chapter: z.number().describe("Chapter number"),
@@ -1128,12 +1151,12 @@ Examples:
 // =============================================================================
 server.tool(
   "search_bible",
-  `Search the Bible for words or phrases. Returns matching verses with references.
+  `Search for verses containing words or phrases. Use for research and finding relevant passages.
 
-Examples:
-- Search all: q="love"
-- Filter by book: q="faith", book="ROM"
-- Filter by testament: q="peace", testament="NT"`,
+Returns matching verses for building context or finding cross-references.
+To present specific results to the user, pass the references to read_bible.
+
+Examples: q="love", q="faith" book="ROM", q="peace" testament="NT"`,
   {
     query: z.string().describe("Search term or phrase"),
     book: z.string()
@@ -1274,12 +1297,12 @@ server.tool(
 // =============================================================================
 server.tool(
   "get_random_verse",
-  `Get a random Bible verse. Can filter by book or testament.
+  `Get a random verse for inspiration or devotional use.
 
-Examples:
-- Random from anywhere: no params
-- Random Psalm: book="PSA"
-- Random from New Testament: testament="NT"`,
+Returns a random verse. To present it to the user with the interactive reader,
+pass the reference to read_bible.
+
+Filters: book="PSA" (Psalms only), testament="NT" (New Testament only)`,
   {
     translation: z.preprocess(
       (val) => (typeof val === "string" ? val.toLowerCase() : val),
@@ -1443,15 +1466,43 @@ Please:
 // =============================================================================
 const BIBLE_READER_RESOURCE_URI = "ui://bible/reader.html";
 
+// Helper to detect if a reference is a chapter-only reference (e.g., "Genesis 1" vs "Genesis 1:1")
+function isChapterReference(reference: string): { isChapter: boolean; book?: string; chapter?: number } {
+  // Patterns like "Genesis 1", "Psalm 23", "1 John 3" (no colon = chapter reference)
+  // vs "John 3:16", "Romans 8:28-39" (has colon = verse reference)
+  const normalized = reference.trim();
+
+  // If it contains a colon, it's a verse reference
+  if (normalized.includes(":")) {
+    return { isChapter: false };
+  }
+
+  // Try to extract book and chapter for chapter references
+  // Match patterns like "Genesis 1", "1 John 3", "Psalm 23"
+  const match = normalized.match(/^(.+?)\s+(\d+)$/);
+  if (match) {
+    return { isChapter: true, book: match[1], chapter: parseInt(match[2], 10) };
+  }
+
+  // If no chapter number found, treat as verse reference (API will handle it)
+  return { isChapter: false };
+}
+
 registerAppTool(
   server,
   "read_bible",
   {
     title: "Bible Reader",
-    description: "Interactive Bible reader with chapter navigation and translation switching",
+    description: `Present Scripture to the user with an interactive reader UI.
+
+This is the preferred tool for displaying Bible passages to users. Supports:
+- Single verses: "John 3:16"
+- Verse ranges: "Romans 8:28-39"
+- Full chapters: "Genesis 1", "Psalm 23"
+
+Features translation toggle (WEB/KJV) and navigation controls.`,
     inputSchema: {
-      book: z.string().describe("Book name or ID (e.g., 'Genesis', 'PSA', 'ROM')"),
-      chapter: z.number().describe("Chapter number"),
+      reference: z.string().describe("Bible reference - verse (John 3:16), range (Romans 8:28-39), or chapter (Genesis 1)"),
       translation: z.preprocess(
         (val) => (typeof val === "string" ? val.toLowerCase() : val),
         z.enum(["web", "kjv"]).optional()
@@ -1466,43 +1517,89 @@ registerAppTool(
       },
     },
   },
-  async (args: { book: string; chapter: number; translation?: string }) => {
-    const { book, chapter, translation = "web" } = args;
+  async (args: { reference: string; translation?: string }) => {
+    const { reference, translation = "web" } = args;
     const params = new URLSearchParams();
     params.set("translation", translation.toLowerCase());
 
-    const path = `/chapters/${encodeURIComponent(book)}/${chapter}?${params.toString()}`;
-    const data = await fetchApi<ChapterResponse>(path);
+    const chapterInfo = isChapterReference(reference);
 
-    if (isError(data)) {
+    if (chapterInfo.isChapter && chapterInfo.book && chapterInfo.chapter) {
+      // Chapter reference - use chapter API for navigation support
+      const path = `/chapters/${encodeURIComponent(chapterInfo.book)}/${chapterInfo.chapter}?${params.toString()}`;
+      const data = await fetchApi<ChapterResponse>(path);
+
+      if (isError(data)) {
+        return {
+          content: [{ type: "text", text: `Error: ${data.error}` }],
+          structuredContent: { error: data.error },
+          isError: true,
+        };
+      }
+
+      // Text fallback for non-MCP-Apps clients
+      const verseLines = data.verses.map((v) => `${v.verse}. ${v.text}`);
+      const textOutput = [
+        `📖 ${data.book.name} ${data.chapter}`,
+        `Translation: ${data.translation.name}`,
+        "",
+        ...verseLines,
+      ].join("\n");
+
+      // Structured content for the UI - chapter view with navigation
       return {
-        content: [{ type: "text", text: `Error: ${data.error}` }],
-        structuredContent: { error: data.error },
-        isError: true,
+        content: [{ type: "text", text: textOutput }],
+        structuredContent: {
+          viewType: "chapter",
+          reference: `${data.book.name} ${data.chapter}`,
+          book: data.book,
+          chapter: data.chapter,
+          translation: data.translation,
+          verses: data.verses,
+          navigation: data.navigation,
+        },
+      };
+    } else {
+      // Verse reference - use verse API
+      const path = `/verses/${encodeURIComponent(reference)}?${params.toString()}`;
+      const data = await fetchApi<VerseResponse>(path);
+
+      if (isError(data)) {
+        return {
+          content: [{ type: "text", text: `Error: ${data.error}` }],
+          structuredContent: { error: data.error },
+          isError: true,
+        };
+      }
+
+      // Text fallback for non-MCP-Apps clients
+      const textOutput = [
+        `📖 ${data.reference}`,
+        `Translation: ${data.translation.name}`,
+        "",
+        data.text,
+      ].join("\n");
+
+      // Extract book and chapter from the first verse for "View Chapter" button
+      const firstVerse = data.verses[0];
+      const chapterContext = firstVerse ? {
+        book: firstVerse.book,
+        bookName: firstVerse.book_name,
+        chapter: firstVerse.chapter,
+      } : null;
+
+      // Structured content for the UI - verse view with chapter context
+      return {
+        content: [{ type: "text", text: textOutput }],
+        structuredContent: {
+          viewType: "verses",
+          reference: data.reference,
+          translation: data.translation,
+          verses: data.verses.map(v => ({ verse: v.verse, text: v.text })),
+          chapterContext,
+        },
       };
     }
-
-    // Text fallback for non-MCP-Apps clients
-    const verseLines = data.verses.map((v) => `${v.verse}. ${v.text}`);
-    const textOutput = [
-      `📖 ${data.book.name} ${data.chapter}`,
-      `Translation: ${data.translation.name}`,
-      "",
-      ...verseLines,
-    ].join("\n");
-
-    // Structured content for the UI
-    return {
-      content: [{ type: "text", text: textOutput }],
-      structuredContent: {
-        reference: `${data.book.name} ${data.chapter}`,
-        book: data.book,
-        chapter: data.chapter,
-        translation: data.translation,
-        verses: data.verses,
-        navigation: data.navigation,
-      },
-    };
   }
 );
 
