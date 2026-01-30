@@ -65,6 +65,12 @@ server.tool(
 );
 ```
 
+## Input Normalization
+
+All enum parameters use `z.preprocess` to normalize case before validation:
+- `translation`: lowercased (accepts "KJV", "kjv", "Kjv")
+- `testament`: uppercased (accepts "NT", "nt", "Nt")
+
 ## Version Constraints
 
 The `@modelcontextprotocol/sdk` version must match the version bundled in `agents` package (currently 1.25.2).

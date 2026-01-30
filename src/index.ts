@@ -662,9 +662,10 @@ Examples:
 - "Tobit 1:1" - Apocrypha supported`,
   {
     reference: z.string().describe("Bible reference (e.g., 'John 3:16', 'Psalm 23', 'Romans 8:28-39')"),
-    translation: z.enum(["web", "kjv"])
-      .optional()
-      .describe("Translation: 'web' (World English Bible, default) or 'kjv' (King James Version)"),
+    translation: z.preprocess(
+      (val) => (typeof val === "string" ? val.toLowerCase() : val),
+      z.enum(["web", "kjv"]).optional()
+    ).describe("Translation: 'web' (World English Bible, default) or 'kjv' (King James Version)"),
   },
   async ({ reference, translation }) => {
     const params = new URLSearchParams();
@@ -708,9 +709,10 @@ Examples:
     book: z.string()
       .optional()
       .describe("Filter by book code (e.g., 'GEN', 'ROM', 'PSA')"),
-    testament: z.enum(["OT", "NT", "AP"])
-      .optional()
-      .describe("Filter by testament: OT (Old), NT (New), AP (Apocrypha)"),
+    testament: z.preprocess(
+      (val) => (typeof val === "string" ? val.toUpperCase() : val),
+      z.enum(["OT", "NT", "AP"]).optional()
+    ).describe("Filter by testament: OT (Old), NT (New), AP (Apocrypha)"),
     limit: z.number()
       .min(1)
       .max(50)
@@ -761,12 +763,13 @@ server.tool(
   "list_books",
   "List all books of the Bible with chapter counts. Can filter by testament.",
   {
-    testament: z.enum(["OT", "NT", "AP", "all"])
-      .optional()
-      .describe("Filter: OT (Old Testament), NT (New Testament), AP (Apocrypha), all (default)"),
+    testament: z.preprocess(
+      (val) => (typeof val === "string" ? val.toUpperCase() : val),
+      z.enum(["OT", "NT", "AP", "ALL"]).optional()
+    ).describe("Filter: OT (Old Testament), NT (New Testament), AP (Apocrypha), all (default)"),
   },
   async ({ testament }) => {
-    const params = testament && testament !== "all"
+    const params = testament && testament !== "ALL"
       ? `?testament=${testament}`
       : "";
 
@@ -848,15 +851,17 @@ Examples:
 - Random Psalm: book="PSA"
 - Random from New Testament: testament="NT"`,
   {
-    translation: z.enum(["web", "kjv"])
-      .optional()
-      .describe("Translation: 'web' (default) or 'kjv'"),
+    translation: z.preprocess(
+      (val) => (typeof val === "string" ? val.toLowerCase() : val),
+      z.enum(["web", "kjv"]).optional()
+    ).describe("Translation: 'web' (default) or 'kjv'"),
     book: z.string()
       .optional()
       .describe("Filter by book code (e.g., 'PSA', 'PRO', 'ROM')"),
-    testament: z.enum(["OT", "NT", "AP"])
-      .optional()
-      .describe("Filter by testament: OT, NT, or AP (Apocrypha)"),
+    testament: z.preprocess(
+      (val) => (typeof val === "string" ? val.toUpperCase() : val),
+      z.enum(["OT", "NT", "AP"]).optional()
+    ).describe("Filter by testament: OT, NT, or AP (Apocrypha)"),
   },
   async ({ translation, book, testament }) => {
     const params = new URLSearchParams();
