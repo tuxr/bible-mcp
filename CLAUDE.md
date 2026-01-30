@@ -52,20 +52,16 @@ MCP Client (Claude.ai) → MCP Worker ──[Service Binding]──► Bible API
 
 ## Current Tools & Prompts
 
-**Tool Purpose Division:**
-- **Presentation tools** → Display Scripture to the user with interactive UI
-- **Context tools** → Gather information for analysis and grounding discussion
-
 **Tools** (model-invoked):
-| Tool | Purpose | Description |
-|------|---------|-------------|
-| `read_bible` | **Present** | Interactive Bible reader UI - accepts verses ("John 3:16"), ranges ("Romans 8:28-39"), or chapters ("Genesis 1") |
-| `get_verse` | Context | Retrieve verse text for analysis or grounding |
-| `get_chapter` | Context | Get full chapter text for analysis |
-| `search_bible` | Context | Find verses by keyword for research |
-| `get_random_verse` | Context | Get random verse for inspiration |
-| `list_books` | Reference | List all books with chapter counts |
-| `list_translations` | Reference | List available translations (WEB, KJV) |
+| Tool | Description |
+|------|-------------|
+| `read_bible` | Interactive reader with navigation and translation toggle |
+| `get_verse` | Retrieve verse text by reference |
+| `get_chapter` | Get full chapter with verse numbers and nav hints |
+| `search_bible` | Search for verses by keyword |
+| `get_random_verse` | Get a random verse for inspiration |
+| `list_books` | List all books with chapter counts |
+| `list_translations` | List available translations (WEB, KJV) |
 
 **Prompts** (user-invoked templates):
 | Prompt | Description |
