@@ -544,28 +544,6 @@ const LANDING_PAGE_HTML = `<!DOCTYPE html>
       </div>
     </section>
 
-    <section>
-      <h2>📋 Suggested Project Instructions</h2>
-      <p style="color: var(--text-secondary); margin-bottom: 1rem;">For the best experience, copy this into your Claude.ai Project instructions:</p>
-
-      <div class="card" style="background: var(--bg-tertiary); position: relative;">
-        <pre id="instructions-text" style="white-space: pre-wrap; font-size: 0.85rem; color: var(--text-primary); margin: 0; line-height: 1.6;">When using Bible tools, always display the complete verse text prominently. Format verses like this:
-
-> **John 3:16** (KJV)
-> For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.
-
-For passages with multiple verses, show verse numbers:
-
-> **Psalm 23:1-3** (WEB)
-> ¹ The LORD is my shepherd; I shall not want.
-> ² He makes me lie down in green pastures. He leads me beside still waters.
-> ³ He restores my soul.
-
-Never paraphrase or summarize verses—always show the exact text. You may add reflections, context, or application after displaying the verse.</pre>
-        <button class="copy-btn" onclick="copyInstructions()" style="margin-top: 1rem;">Copy Instructions</button>
-      </div>
-    </section>
-
     <footer>
       <p>Powered by <a href="https://bible-api.dws-cloud.com">Bible API</a></p>
       <p style="margin-top: 0.5rem;">Built with the <a href="https://modelcontextprotocol.io">Model Context Protocol</a></p>
@@ -576,21 +554,10 @@ Never paraphrase or summarize verses—always show the exact text. You may add r
     function copyUrl() {
       const url = document.getElementById('mcp-url').textContent;
       navigator.clipboard.writeText(url).then(() => {
-        const btn = document.querySelector('.url-box .copy-btn');
+        const btn = document.querySelector('.copy-btn');
         btn.textContent = 'Copied!';
         setTimeout(() => {
           btn.textContent = 'Copy';
-        }, 2000);
-      });
-    }
-
-    function copyInstructions() {
-      const text = document.getElementById('instructions-text').textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        const btn = event.target;
-        btn.textContent = 'Copied!';
-        setTimeout(() => {
-          btn.textContent = 'Copy Instructions';
         }, 2000);
       });
     }
