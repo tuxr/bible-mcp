@@ -459,11 +459,22 @@ const LANDING_PAGE_HTML = `<!DOCTYPE html>
     <section>
       <h2>🛠️ Available Tools</h2>
 
+      <div class="tool" style="border-color: var(--accent-blue); background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(88, 166, 255, 0.1) 100%);">
+        <div class="tool-header">
+          <span class="tool-name" style="background: var(--accent-blue); color: var(--bg-primary);">read_bible</span>
+          <span style="font-size: 0.75rem; color: var(--accent-blue); font-weight: 500;">✨ Interactive</span>
+        </div>
+        <p class="tool-desc">Present Scripture with an interactive reader UI. Browse books, switch translations, navigate chapters.</p>
+        <div class="tool-examples">
+          Examples: <code>John 3:16</code>, <code>Romans 8:28-39</code>, <code>Genesis 1</code> — with hamburger menu to browse all books
+        </div>
+      </div>
+
       <div class="tool">
         <div class="tool-header">
           <span class="tool-name">get_verse</span>
         </div>
-        <p class="tool-desc">Retrieve any Bible verse, range, or entire chapter by reference.</p>
+        <p class="tool-desc">Retrieve verse text for context gathering and analysis.</p>
         <div class="tool-examples">
           Examples: <code>John 3:16</code>, <code>Psalm 23</code>, <code>Romans 8:28-39</code>, <code>Genesis 1:1-2:3</code>
         </div>
@@ -520,11 +531,11 @@ const LANDING_PAGE_HTML = `<!DOCTYPE html>
     <section>
       <h2>💬 Example Prompts</h2>
       <div class="prompts-grid">
-        <div class="prompt">Look up John 3:16</div>
+        <div class="prompt">Present Romans 8:28-39</div>
+        <div class="prompt">Show me John 3:16 in the reader</div>
         <div class="prompt">Search the Bible for 'faith' in the New Testament</div>
-        <div class="prompt">Show me a random Psalm</div>
-        <div class="prompt">Get Romans 8:28-39 in KJV</div>
         <div class="prompt">What does the Bible say about love?</div>
+        <div class="prompt">Show me a random Psalm</div>
         <div class="prompt">List the books of the Apocrypha</div>
         <div class="prompt">Find verses about forgiveness in Matthew</div>
         <div class="prompt">Give me an encouraging verse from Proverbs</div>
