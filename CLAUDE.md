@@ -130,6 +130,14 @@ MCP Apps render interactive HTML interfaces directly in Claude.ai. The `read_bib
 - Ranges: `"Romans 8:28-39"` → Shows range with "View Romans 8" button
 - Chapters: `"Genesis 1"` → Shows chapter with prev/next navigation
 
+**Interactive UI features:**
+- **Hamburger menu** - Browse all 86 books organized by testament (OT, NT, Apocrypha)
+- **Search** - Filter books by name as you type
+- **Chapter grid** - Click a book to expand chapter buttons, click to navigate
+- **Translation toggle** - Switch between WEB and KJV
+- **Reset button** - Returns to original passage after navigating away
+- **Copy button** - Copy verses with reference to clipboard
+
 **Key components:**
 - `registerAppTool()` - Registers a tool with UI metadata (`_meta.ui.resourceUri`)
 - `registerAppResource()` - Serves the HTML resource at a `ui://` URI
