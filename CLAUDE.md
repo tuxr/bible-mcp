@@ -40,6 +40,7 @@ MCP Client (Claude.ai) → MCP Worker ──[Service Binding]──► Bible API
 - `env.BIBLE_API` - Service binding to the Bible API worker (configured in `wrangler.toml`)
 - `fetchApi<T>()` - Uses the service binding's `.fetch()` method
 - Tools registered via `server.tool(name, description, zodSchema, handler)`
+- Prompts registered via `server.registerPrompt(name, options, handler)`
 
 **Bible API endpoints used:**
 - `GET /v1/verses/{reference}?translation=...` - Fetch verses
@@ -48,6 +49,25 @@ MCP Client (Claude.ai) → MCP Worker ──[Service Binding]──► Bible API
 - `GET /v1/books?testament=...` - List books with chapter counts
 - `GET /v1/translations` - List available translations
 - `GET /v1/random?translation=...&book=...&testament=...` - Random verse
+
+## Current Tools & Prompts
+
+**Tools** (model-invoked):
+| Tool | Description |
+|------|-------------|
+| `get_verse` | Retrieve verses by reference (e.g., "John 3:16", "Psalm 23") |
+| `get_chapter` | Get full chapter with prev/next navigation |
+| `search_bible` | Full-text search with book/testament filters |
+| `list_books` | List all books with chapter counts |
+| `list_translations` | List available translations (WEB, KJV) |
+| `get_random_verse` | Random verse with optional filters |
+
+**Prompts** (user-invoked templates):
+| Prompt | Description |
+|--------|-------------|
+| `daily-verse` | Random verse with reflection prompts |
+| `study-passage` | Deep dive with context and analysis |
+| `topical-search` | Find and explore verses on a topic |
 
 ## Adding New Tools
 
@@ -95,11 +115,6 @@ server.registerPrompt(
   })
 );
 ```
-
-**Current prompts:**
-- `daily-verse` - Random verse with reflection prompts
-- `study-passage` - Deep dive into a passage with context
-- `topical-search` - Find verses on a specific topic
 
 ## Input Normalization
 
