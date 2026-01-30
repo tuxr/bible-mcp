@@ -208,6 +208,19 @@ registerAppResource(
 
 **Cross-browser transparency**: Add `<meta name="color-scheme" content="dark light">` to prevent Safari from rendering transparent backgrounds as white in iframes.
 
+**Cold start resilience**: Use retry logic for `app.callServerTool()` calls to handle transient timeouts:
+```javascript
+async function withRetry(fn, retries = 1) {
+  for (let i = 0; i <= retries; i++) {
+    try { return await fn(); }
+    catch (err) {
+      if (i < retries) await new Promise(r => setTimeout(r, 500));
+      else throw err;
+    }
+  }
+}
+```
+
 ## Input Normalization
 
 All enum parameters use `z.preprocess` to normalize case before validation:
