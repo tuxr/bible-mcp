@@ -600,14 +600,12 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg);
+      background: transparent;
       color: var(--text);
-      padding: 1rem;
-      min-height: 100vh;
+      padding: 0.5rem;
     }
 
     body.light {
-      --bg: #ffffff;
       --bg-card: #f6f8fa;
       --text: #1f2328;
       --text-muted: #656d76;
@@ -763,6 +761,7 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
 
     let currentData = null;
     let currentTranslation = "web";
+    let initialReference = null; // Track the original reference from tool call
 
     // Safe text escaping to prevent XSS
     function escapeHtml(text) {
@@ -820,6 +819,9 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
       const navBar = document.createElement("div");
       navBar.className = "nav-bar";
 
+      // Check if we've navigated away from the initial reference
+      const hasNavigatedAway = initialReference && reference !== initialReference;
+
       if (viewType === "chapter" && navigation) {
         // Chapter view: prev/next chapter navigation
         const prevBtn = document.createElement("button");
@@ -832,11 +834,27 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
           if (navigation.previous) loadReference(navigation.previous.book + " " + navigation.previous.chapter);
         });
 
+        // Middle section: reset button or copy button
+        const middleContainer = document.createElement("div");
+        middleContainer.style.display = "flex";
+        middleContainer.style.gap = "0.5rem";
+        middleContainer.style.alignItems = "center";
+
+        if (hasNavigatedAway) {
+          const resetBtn = document.createElement("button");
+          resetBtn.className = "nav-btn";
+          resetBtn.textContent = "↩ " + initialReference;
+          resetBtn.title = "Return to original passage";
+          resetBtn.addEventListener("click", () => loadReference(initialReference));
+          middleContainer.appendChild(resetBtn);
+        }
+
         const copyBtn = document.createElement("button");
         copyBtn.className = "copy-btn";
         copyBtn.title = "Copy verses";
         copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>';
         copyBtn.addEventListener("click", () => copyVerses(copyBtn));
+        middleContainer.appendChild(copyBtn);
 
         const nextBtn = document.createElement("button");
         nextBtn.className = "nav-btn";
@@ -849,7 +867,7 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
         });
 
         navBar.appendChild(prevBtn);
-        navBar.appendChild(copyBtn);
+        navBar.appendChild(middleContainer);
         navBar.appendChild(nextBtn);
       } else {
         // Verse view: "View Chapter" button
@@ -916,6 +934,8 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
       if (result.structuredContent) {
         currentData = result.structuredContent;
         currentTranslation = result.structuredContent.translation?.id || "web";
+        // Store the initial reference from the first tool call
+        initialReference = result.structuredContent.reference;
         render();
       }
     };
