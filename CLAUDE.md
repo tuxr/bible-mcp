@@ -43,6 +43,7 @@ MCP Client (Claude.ai) → MCP Worker ──[Service Binding]──► Bible API
 
 **Bible API endpoints used:**
 - `GET /v1/verses/{reference}?translation=...` - Fetch verses
+- `GET /v1/chapters/{book}/{chapter}?translation=...` - Fetch full chapter with navigation (includes testament in prev/next)
 - `GET /v1/search?q=...&book=...&testament=...&limit=...` - Full-text search
 - `GET /v1/books?testament=...` - List books with chapter counts
 - `GET /v1/translations` - List available translations

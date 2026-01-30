@@ -469,6 +469,16 @@ const LANDING_PAGE_HTML = `<!DOCTYPE html>
 
       <div class="tool">
         <div class="tool-header">
+          <span class="tool-name">get_chapter</span>
+        </div>
+        <p class="tool-desc">Get a full chapter with navigation hints for sequential reading.</p>
+        <div class="tool-examples">
+          Examples: <code>Genesis 1</code>, <code>Psalm 23</code>, <code>Romans 8</code> — includes prev/next chapter links
+        </div>
+      </div>
+
+      <div class="tool">
+        <div class="tool-header">
           <span class="tool-name">search_bible</span>
         </div>
         <p class="tool-desc">Full-text search across all 74,000+ verses. Filter by book or testament.</p>
@@ -618,6 +628,18 @@ interface TranslationInfo {
   description: string;
 }
 
+interface ChapterResponse {
+  book: { id: string; name: string; testament: "OT" | "NT" | "AP" };
+  chapter: number;
+  translation: Translation;
+  verses: Array<{ verse: number; text: string }>;
+  verse_count: number;
+  navigation: {
+    previous: { book: string; chapter: number; testament: "OT" | "NT" | "AP" } | null;
+    next: { book: string; chapter: number; testament: "OT" | "NT" | "AP" } | null;
+  };
+}
+
 interface ApiError {
   error: string;
 }
@@ -687,6 +709,80 @@ Examples:
       `Translation: ${data.translation.name}`,
       "",
       data.text,
+    ].join("\n");
+
+    return { content: [{ type: "text", text: output }] };
+  }
+);
+
+// =============================================================================
+// TOOL: Get Chapter
+// =============================================================================
+server.tool(
+  "get_chapter",
+  `Get a full Bible chapter with navigation hints for sequential reading.
+
+Returns all verses in the chapter plus previous/next chapter references.
+
+Examples:
+- "Genesis", 1 - First chapter of Genesis
+- "PSA", 23 - Psalm 23
+- "ROM", 8, "kjv" - Romans 8 in KJV`,
+  {
+    book: z.string().describe("Book name, abbreviation, or ID (e.g., 'Genesis', 'Gen', 'GEN')"),
+    chapter: z.number().describe("Chapter number"),
+    translation: z.preprocess(
+      (val) => (typeof val === "string" ? val.toLowerCase() : val),
+      z.enum(["web", "kjv"]).optional()
+    ).describe("Translation: 'web' (default) or 'kjv'"),
+  },
+  async ({ book, chapter, translation }) => {
+    const params = new URLSearchParams();
+    if (translation) params.set("translation", translation);
+
+    const query = params.toString();
+    const path = `/chapters/${encodeURIComponent(book)}/${chapter}${query ? `?${query}` : ""}`;
+    const data = await fetchApi<ChapterResponse>(path);
+
+    if (isError(data)) {
+      return {
+        content: [{ type: "text", text: `Error: ${data.error}` }],
+        isError: true,
+      };
+    }
+
+    // Format verses
+    const verseLines = data.verses.map((v) => `${v.verse}. ${v.text}`);
+
+    // Testament labels for display
+    const testamentLabel: Record<string, string> = {
+      OT: "Old Testament",
+      NT: "New Testament",
+      AP: "Apocrypha",
+    };
+
+    // Build navigation hint with testament info
+    const navParts: string[] = [];
+    if (data.navigation.previous) {
+      const prev = data.navigation.previous;
+      const crossesTestament = prev.testament !== data.book.testament;
+      const label = crossesTestament ? ` [${prev.testament}]` : "";
+      navParts.push(`← ${prev.book} ${prev.chapter}${label}`);
+    }
+    if (data.navigation.next) {
+      const next = data.navigation.next;
+      const crossesTestament = next.testament !== data.book.testament;
+      const label = crossesTestament ? ` [${next.testament}]` : "";
+      navParts.push(`${next.book} ${next.chapter}${label} →`);
+    }
+
+    const output = [
+      `📖 ${data.book.name} ${data.chapter}`,
+      `${testamentLabel[data.book.testament]} | ${data.translation.name} | ${data.verse_count} verses`,
+      "",
+      ...verseLines,
+      "",
+      `Navigation: ${navParts.join(" | ") || "End of " + testamentLabel[data.book.testament]}`,
     ].join("\n");
 
     return { content: [{ type: "text", text: output }] };

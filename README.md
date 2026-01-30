@@ -18,6 +18,7 @@ A public MCP (Model Context Protocol) server that provides Bible verse lookup an
 | Tool | Description |
 |------|-------------|
 | `get_verse` | Fetch verses by reference (e.g., "John 3:16", "Psalm 23", "Romans 8:28-39") |
+| `get_chapter` | Get a full chapter with navigation hints for sequential reading |
 | `search_bible` | Search for words/phrases with book and testament filters |
 | `list_books` | List Bible books with chapter counts, filterable by testament |
 | `list_translations` | Show available translations |
