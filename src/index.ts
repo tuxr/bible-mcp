@@ -1491,10 +1491,10 @@ const server = new McpServer({
 // =============================================================================
 server.tool(
   "get_verse",
-  `Retrieve verse text for context, analysis, or grounding discussion.
+  `Retrieve verse text by reference. Returns formatted text.
 
-Use this to gather Scripture content for building context or informing responses.
-For presenting verses to the user as a visual reference, use read_bible instead.
+Use for: context gathering, analysis, grounding discussion, or displaying to users on mobile.
+On desktop, read_bible offers an interactive UI alternative.
 
 Examples: "John 3:16", "Romans 8:28-39", "Psalm 23"`,
   {
@@ -1535,10 +1535,10 @@ Examples: "John 3:16", "Romans 8:28-39", "Psalm 23"`,
 // =============================================================================
 server.tool(
   "get_chapter",
-  `Get full chapter text for context or analysis.
+  `Get full chapter text with verse numbers and navigation hints.
 
-Use this to gather chapter content for building context or informing responses.
-For presenting a chapter to the user as a visual reference, use read_bible instead.
+Use for: sequential reading, context gathering, analysis, or displaying to users on mobile.
+On desktop, read_bible offers an interactive UI with prev/next navigation.
 
 Examples: ("Genesis", 1), ("PSA", 23), ("ROM", 8)`,
   {
@@ -1607,10 +1607,10 @@ Examples: ("Genesis", 1), ("PSA", 23), ("ROM", 8)`,
 // =============================================================================
 server.tool(
   "search_bible",
-  `Search for verses containing words or phrases. Use for research and finding relevant passages.
+  `Search for verses containing words or phrases. Returns matching verses with references.
 
-Returns matching verses for building context or finding cross-references.
-To present specific results to the user, pass the references to read_bible.
+Use for: topical research, finding cross-references, answering "what does the Bible say about X".
+Results include full verse text - can be displayed directly or passed to read_bible on desktop.
 
 Examples: q="love", q="faith" book="ROM", q="peace" testament="NT"`,
   {
@@ -1753,10 +1753,10 @@ server.tool(
 // =============================================================================
 server.tool(
   "get_random_verse",
-  `Get a random verse for inspiration or devotional use.
+  `Get a random verse for inspiration or devotional use. Returns verse with reference.
 
-Returns a random verse. To present it to the user with the interactive reader,
-pass the reference to read_bible.
+Use for: daily devotionals, random encouragement, inspiration prompts.
+Can display directly or pass reference to read_bible for interactive UI on desktop.
 
 Filters: book="PSA" (Psalms only), testament="NT" (New Testament only)`,
   {
@@ -1949,14 +1949,13 @@ registerAppTool(
   "read_bible",
   {
     title: "Bible Reader",
-    description: `Present Scripture to the user with an interactive reader UI.
+    description: `Present Scripture with an interactive reader UI (desktop only).
 
-This is the preferred tool for displaying Bible passages to users. Supports:
-- Single verses: "John 3:16"
-- Verse ranges: "Romans 8:28-39"
-- Full chapters: "Genesis 1", "Psalm 23"
+Best for desktop users who want to browse and navigate Scripture interactively.
+On mobile or when UI unavailable, use get_verse or get_chapter instead.
 
-Features translation toggle (WEB/KJV) and navigation controls.`,
+Supports: verses ("John 3:16"), ranges ("Romans 8:28-39"), chapters ("Genesis 1")
+Features: translation toggle, chapter navigation, book browser menu.`,
     inputSchema: {
       reference: z.string().describe("Bible reference - verse (John 3:16), range (Romans 8:28-39), or chapter (Genesis 1)"),
       translation: z.preprocess(
