@@ -1461,7 +1461,7 @@ registerAppTool(
       ui: {
         resourceUri: BIBLE_READER_RESOURCE_URI,
         csp: {
-          scriptDomains: ["https://unpkg.com"],
+          resourceDomains: ["https://unpkg.com"],
         },
       },
     },
@@ -1520,7 +1520,7 @@ registerAppResource(
         _meta: {
           ui: {
             csp: {
-              scriptDomains: ["https://unpkg.com"],
+              resourceDomains: ["https://unpkg.com"],
             },
           },
         },

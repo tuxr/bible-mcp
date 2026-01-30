@@ -61,6 +61,7 @@ MCP Client (Claude.ai) → MCP Worker ──[Service Binding]──► Bible API
 | `list_books` | List all books with chapter counts |
 | `list_translations` | List available translations (WEB, KJV) |
 | `get_random_verse` | Random verse with optional filters |
+| `read_bible` | **MCP App** - Interactive Bible reader with chapter navigation and translation toggle |
 
 **Prompts** (user-invoked templates):
 | Prompt | Description |
@@ -114,6 +115,78 @@ server.registerPrompt(
     ],
   })
 );
+```
+
+## MCP Apps (Interactive UIs)
+
+MCP Apps render interactive HTML interfaces directly in Claude.ai. The `read_bible` tool demonstrates this pattern.
+
+**Key components:**
+- `registerAppTool()` - Registers a tool with UI metadata (`_meta.ui.resourceUri`)
+- `registerAppResource()` - Serves the HTML resource at a `ui://` URI
+- `RESOURCE_MIME_TYPE` - Required MIME type (`text/html;profile=mcp-app`)
+- `structuredContent` - Data passed to the UI in tool responses
+
+**Adding a new MCP App:**
+
+```typescript
+import { registerAppTool, registerAppResource, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
+
+const RESOURCE_URI = "ui://myapp/view.html";
+
+// Register the tool
+registerAppTool(
+  server,
+  "my_app_tool",
+  {
+    title: "My App",
+    description: "Description of what this app does",
+    inputSchema: { param: z.string() },
+    _meta: {
+      ui: {
+        resourceUri: RESOURCE_URI,
+        csp: {
+          resourceDomains: ["https://cdn.example.com"],  // For external scripts/styles
+          connectDomains: ["https://api.example.com"],   // For fetch/WebSocket
+        },
+      },
+    },
+  },
+  async (args) => ({
+    content: [{ type: "text", text: "Fallback text for non-UI clients" }],
+    structuredContent: { /* data for the UI */ },
+  })
+);
+
+// Register the HTML resource
+registerAppResource(
+  server,
+  "My App View",
+  RESOURCE_URI,
+  { mimeType: RESOURCE_MIME_TYPE },
+  async () => ({
+    contents: [{
+      uri: RESOURCE_URI,
+      mimeType: RESOURCE_MIME_TYPE,
+      text: MY_APP_HTML,  // Inline HTML string
+    }],
+  })
+);
+```
+
+**CSP field names** (use correct names or UI won't load):
+- `resourceDomains` - for scripts, images, styles, fonts
+- `connectDomains` - for fetch/XHR/WebSocket requests
+- `frameDomains` - for nested iframes
+
+**In the HTML**, use the ext-apps SDK:
+```html
+<script type="module">
+  import { App } from "https://unpkg.com/@modelcontextprotocol/ext-apps@1.0.1/dist/src/app-with-deps.js";
+  const app = new App({ name: "My App", version: "1.0.0" });
+  app.ontoolresult = (result) => { /* render result.structuredContent */ };
+  await app.connect();
+</script>
 ```
 
 ## Input Normalization
