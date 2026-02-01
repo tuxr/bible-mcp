@@ -20,13 +20,17 @@ npx tsc --noEmit # Type check without emitting
 
 ## Architecture
 
-This is a stateless MCP server hosted on Cloudflare Workers that communicates with a Bible API worker (also on the same Cloudflare account) via **Service Binding**.
+This is a stateless MCP server hosted on Cloudflare Workers that communicates with a Bible API ([GitHub](https://github.com/tuxr/bible-api)).
 
 ```
-MCP Client (Claude.ai) → MCP Worker ──[Service Binding]──► Bible API Worker → D1 Database
+MCP Client (Claude.ai) → MCP Worker ──[HTTPS or Service Binding]──► Bible API → D1 Database
 ```
 
-**Why Service Binding?** Cloudflare Workers on the same account cannot call each other via public HTTP (error 1042). Service Bindings enable direct Worker-to-Worker communication.
+**API Connection Options:**
+- **Public API:** Set `BIBLE_API_URL` in wrangler.toml - works across Cloudflare accounts
+- **Service Binding:** Configure `[[services]]` in wrangler.toml - faster, same account only
+
+The `fetchApi<T>()` function automatically detects which mode to use based on available environment bindings.
 
 **Routes:**
 - `/` - Landing page with setup instructions and tool documentation
@@ -37,8 +41,9 @@ MCP Client (Claude.ai) → MCP Worker ──[Service Binding]──► Bible API
 **Key components in `src/index.ts`:**
 - `FAVICON_SVG` - Inline SVG book icon served at `/favicon.svg`
 - `LANDING_PAGE_HTML` - Static HTML landing page
-- `env.BIBLE_API` - Service binding to the Bible API worker (configured in `wrangler.toml`)
-- `fetchApi<T>()` - Uses the service binding's `.fetch()` method
+- `env.BIBLE_API` - Service binding (optional, for same-account deployments)
+- `env.BIBLE_API_URL` - Public API URL (optional, defaults to hosted API)
+- `fetchApi<T>()` - Calls API via service binding or public HTTPS
 - Tools registered via `server.tool(name, description, zodSchema, handler)`
 - Prompts registered via `server.registerPrompt(name, options, handler)`
 

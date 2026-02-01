@@ -80,16 +80,38 @@ Once connected, you can ask Claude things like:
 ```mermaid
 graph LR
     Client([Claude.ai]) -->|MCP Protocol| MCP[MCP Worker]
-    MCP -->|Service Binding| API[Bible API Worker]
+    MCP -->|HTTPS or Service Binding| API[Bible API]
     API -->|SQL| D1[(D1 Database)]
 ```
 
 - **MCP Server:** Cloudflare Worker with MCP protocol handler
-- **Bible API:** Separate Cloudflare Worker connected via Service Binding
+- **Bible API:** REST API providing verse data ([GitHub](https://github.com/tuxr/bible-api))
 - **Database:** Cloudflare D1 with 74,000+ verses
 - **Search:** Full-text search via FTS5 index
 
-*Service Bindings enable direct Worker-to-Worker communication on the same Cloudflare account.*
+### API Connection Options
+
+The MCP server can connect to the Bible API in two ways:
+
+| Option | Use Case | Configuration |
+|--------|----------|---------------|
+| **Public API** | Use the hosted API, or deploy to a different Cloudflare account | Set `BIBLE_API_URL` in wrangler.toml |
+| **Service Binding** | Both workers in the same Cloudflare account (faster) | Configure `[[services]]` in wrangler.toml |
+
+**Using the public API (default):**
+```toml
+[vars]
+BIBLE_API_URL = "https://bible-api.dws-cloud.com"
+```
+
+**Using a service binding (same account):**
+```toml
+[[services]]
+binding = "BIBLE_API"
+service = "your-bible-api-worker-name"  # Your worker's name
+```
+
+> **Note:** The `binding` must be `BIBLE_API` (this matches the code). The `service` is whatever you named your Bible API worker when you deployed it.
 
 ## License
 

@@ -17,8 +17,19 @@ enabled = true
 pattern = "bible-mcp.dws-cloud.com"
 custom_domain = true
 
-# Service binding to Bible API worker (same account)
-# This allows direct Worker-to-Worker communication without HTTP
+# =============================================================================
+# Bible API Connection
+# =============================================================================
+# Choose ONE of the following options:
+#
+# OPTION 1: Service Binding (same Cloudflare account - faster, no public HTTP)
+# Use this if you're hosting both MCP and Bible API workers in your account.
+# The binding name (BIBLE_API) must match the code, but "service" is YOUR worker name.
 [[services]]
 binding = "BIBLE_API"
-service = "bible-api"
+service = "bible-api"  # Change this to your Bible API worker name
+
+# OPTION 2: Public API (cross-account or using hosted API)
+# Comment out the [[services]] block above and uncomment this:
+# [vars]
+# BIBLE_API_URL = "https://bible-api.dws-cloud.com"  # Or your own API URL

@@ -557,7 +557,7 @@ const LANDING_PAGE_HTML = `<!DOCTYPE html>
     </section>
 
     <footer>
-      <p>Powered by <a href="https://bible-api.dws-cloud.com">Bible API</a></p>
+      <p>Powered by <a href="https://github.com/tuxr/bible-api">Bible API</a></p>
       <p style="margin-top: 0.5rem;">Built with the <a href="https://modelcontextprotocol.io">Model Context Protocol</a></p>
     </footer>
   </div>
@@ -1435,10 +1435,16 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
 // Types
 // =============================================================================
 
-// Service binding type for the Bible API worker
+// Environment bindings
 interface Env {
-  BIBLE_API: Fetcher;
+  // Service binding for same-account Worker-to-Worker communication (optional)
+  BIBLE_API?: Fetcher;
+  // Public API URL for cross-account usage (fallback when no service binding)
+  BIBLE_API_URL?: string;
 }
+
+// Default public API URL
+const DEFAULT_BIBLE_API_URL = "https://bible-api.dws-cloud.com";
 
 interface Translation {
   id: string;
@@ -1501,14 +1507,22 @@ interface ApiError {
 }
 
 // =============================================================================
-// API Client - Uses Service Binding for Worker-to-Worker communication
+// API Client - Uses Service Binding (same account) or Public API (cross-account)
 // =============================================================================
 async function fetchApi<T>(path: string): Promise<T | ApiError> {
-  const bibleApi = (env as unknown as Env).BIBLE_API;
+  const envBindings = env as unknown as Env;
 
-  // Service bindings require a full URL, but it's routed internally
-  const url = `https://bible-api.internal/v1${path}`;
-  const response = await bibleApi.fetch(url);
+  let response: Response;
+
+  if (envBindings.BIBLE_API) {
+    // Service binding: direct Worker-to-Worker communication (same Cloudflare account)
+    // The URL host doesn't matter for service bindings - it's routed internally
+    response = await envBindings.BIBLE_API.fetch(`https://internal/v1${path}`);
+  } else {
+    // Public API: standard HTTPS fetch (cross-account or local development)
+    const baseUrl = envBindings.BIBLE_API_URL || DEFAULT_BIBLE_API_URL;
+    response = await fetch(`${baseUrl}/v1${path}`);
+  }
 
   return response.json() as Promise<T | ApiError>;
 }
