@@ -77,8 +77,11 @@ Once connected, you can ask Claude things like:
 
 ## Architecture
 
-```
-Claude.ai → MCP Worker ──[Service Binding]──► Bible API Worker → D1 Database
+```mermaid
+graph LR
+    Client([Claude.ai]) -->|MCP Protocol| MCP[MCP Worker]
+    MCP -->|Service Binding| API[Bible API Worker]
+    API -->|SQL| D1[(D1 Database)]
 ```
 
 - **MCP Server:** Cloudflare Worker with MCP protocol handler
