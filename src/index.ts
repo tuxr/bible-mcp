@@ -1195,7 +1195,14 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
           render();
         }
       } catch (err) {
-        contentEl.innerHTML = '<div class="error">Failed to load passage. <button onclick="loadReference(\\'' + reference.replace(/'/g, "\\\\'") + '\\')">Retry</button></div>';
+        const errorDiv = document.createElement("div");
+        errorDiv.className = "error";
+        errorDiv.textContent = "Failed to load passage. ";
+        const retryBtn = document.createElement("button");
+        retryBtn.textContent = "Retry";
+        retryBtn.addEventListener("click", () => loadReference(reference));
+        errorDiv.appendChild(retryBtn);
+        contentEl.replaceChildren(errorDiv);
       }
     }
 
@@ -1248,7 +1255,14 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
         bookListCache = parseBookList(text);
         renderBookList();
       } catch (err) {
-        bookListEl.innerHTML = '<div class="error">Failed to load books. <button onclick="loadBookList()">Retry</button></div>';
+        const errorDiv = document.createElement("div");
+        errorDiv.className = "error";
+        errorDiv.textContent = "Failed to load books. ";
+        const retryBtn = document.createElement("button");
+        retryBtn.textContent = "Retry";
+        retryBtn.addEventListener("click", () => loadBookList());
+        errorDiv.appendChild(retryBtn);
+        bookListEl.replaceChildren(errorDiv);
       }
     }
 

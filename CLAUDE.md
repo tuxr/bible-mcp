@@ -133,6 +133,7 @@ MCP Apps render interactive HTML interfaces directly in Claude.ai. The `read_bib
 - **Translation toggle** - Switch between WEB and KJV
 - **Reset button** - Returns to original passage after navigating away
 - **Copy button** - Copy verses with reference to clipboard
+- **Keyboard support** - ESC key closes the menu
 
 **Key components:**
 - `registerAppTool()` - Registers a tool with UI metadata (`_meta.ui.resourceUri`)
@@ -215,6 +216,32 @@ async function withRetry(fn, retries = 1) {
     }
   }
 }
+```
+
+**Security (XSS prevention)**: Use DOM APIs to prevent cross-site scripting:
+```javascript
+// For displaying user input or API data as text content:
+element.textContent = userInput;  // Safe - never parsed as HTML
+
+// For building HTML strings with API data, escape first:
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+html += '<span>' + escapeHtml(apiData) + '</span>';
+
+// For error handlers with retry buttons, use event listeners:
+const retryBtn = document.createElement("button");
+retryBtn.textContent = "Retry";
+retryBtn.addEventListener("click", () => loadData(param));  // Safe closure
+```
+
+**Accessibility**: Add ARIA attributes to icon-only buttons:
+```html
+<button aria-label="Close menu">
+  <svg aria-hidden="true">...</svg>
+</button>
 ```
 
 ## Input Normalization
