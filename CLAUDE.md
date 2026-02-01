@@ -4,8 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Live URLs
 
-- **Landing Page:** https://bible-mcp.dws-cloud.com
+- **Documentation:** https://tuxr.github.io/bible-mcp
 - **MCP Endpoint:** `https://bible-mcp.dws-cloud.com/mcp`
+- **Server Info (JSON):** https://bible-mcp.dws-cloud.com
 - **Backup:** `https://bible-mcp.dws-cloud.workers.dev/mcp`
 - **Bible API:** https://bible-api.dws-cloud.com
 
@@ -33,14 +34,14 @@ MCP Client (Claude.ai) → MCP Worker ──[HTTPS or Service Binding]──► 
 The `fetchApi<T>()` function automatically detects which mode to use based on available environment bindings.
 
 **Routes:**
-- `/` - Landing page with setup instructions and tool documentation
+- `/` - Server info JSON (name, version, tools, prompts, documentation link)
 - `/mcp` - MCP protocol endpoint (for Claude.ai/ChatGPT connectors)
 - `/favicon.svg`, `/favicon.ico` - Book icon favicon
 - `/api`, `/connect` - Redirect to `/mcp`
 
 **Key components in `src/index.ts`:**
 - `FAVICON_SVG` - Inline SVG book icon served at `/favicon.svg`
-- `LANDING_PAGE_HTML` - Static HTML landing page
+- `SERVER_INFO` - JSON object returned at root with server metadata
 - `env.BIBLE_API` - Service binding (optional, for same-account deployments)
 - `env.BIBLE_API_URL` - Public API URL (optional, defaults to hosted API)
 - `fetchApi<T>()` - Calls API via service binding or public HTTPS

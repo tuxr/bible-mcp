@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bible MCP - Bible Verse Lookup &amp; Search</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-tertiary: #21262d;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --accent-blue: #58a6ff;
+      --accent-green: #3fb950;
+      --accent-purple: #a371f7;
+      --border-color: #30363d;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    header {
+      text-align: center;
+      padding: 3rem 0;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 2rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 1.2rem;
+    }
+
+    .badge {
+      display: inline-block;
+      background: var(--accent-green);
+      color: var(--bg-primary);
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-top: 1rem;
+    }
+
+    section {
+      margin-bottom: 2.5rem;
+    }
+
+    h2 {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+      color: var(--accent-blue);
+    }
+
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .url-box {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 1rem;
+      font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+      font-size: 0.95rem;
+    }
+
+    .url-box code {
+      flex: 1;
+      color: var(--accent-green);
+      word-break: break-all;
+    }
+
+    .copy-btn {
+      background: var(--accent-blue);
+      color: var(--bg-primary);
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      transition: opacity 0.2s;
+    }
+
+    .copy-btn:hover {
+      opacity: 0.9;
+    }
+
+    .steps {
+      counter-reset: step;
+    }
+
+    .step {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      align-items: flex-start;
+    }
+
+    .step-number {
+      background: var(--accent-blue);
+      color: var(--bg-primary);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .step-content {
+      padding-top: 2px;
+    }
+
+    .tool {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .tool-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .tool-name {
+      font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+      background: var(--bg-tertiary);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      color: var(--accent-purple);
+      font-size: 0.9rem;
+    }
+
+    .tool-desc {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .tool-examples {
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border-color);
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+
+    .tool-examples code {
+      color: var(--text-primary);
+      background: var(--bg-tertiary);
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+    }
+
+    .prompts-grid {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .prompt {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+    }
+
+    .prompt::before {
+      content: '"';
+      color: var(--accent-blue);
+    }
+
+    .prompt::after {
+      content: '"';
+      color: var(--accent-blue);
+    }
+
+    .translations-list {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .translation {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+    }
+
+    .translation-id {
+      font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+
+    .translation-name {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .links {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .link {
+      color: var(--accent-blue);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .link:hover {
+      text-decoration: underline;
+    }
+
+    footer {
+      border-top: 1px solid var(--border-color);
+      padding-top: 2rem;
+      margin-top: 2rem;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    footer a {
+      color: var(--accent-blue);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    .segmented-control {
+      display: inline-flex;
+      background: var(--bg-tertiary);
+      border-radius: 8px;
+      padding: 4px;
+      margin-bottom: 1.25rem;
+    }
+
+    .segment {
+      padding: 0.5rem 1.25rem;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .segment:hover {
+      color: var(--text-primary);
+    }
+
+    .segment.active {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .segment svg {
+      opacity: 0.7;
+    }
+
+    .segment.active svg {
+      opacity: 1;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .tab-panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 1rem;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .url-box {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .copy-btn {
+        text-align: center;
+      }
+
+      .segmented-control {
+        width: 100%;
+      }
+
+      .segment {
+        flex: 1;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Bible MCP</h1>
+      <p class="subtitle">Bible verse lookup &amp; search for AI assistants</p>
+    </header>
+
+    <section>
+      <h2>Quick Start</h2>
+
+      <div class="url-box" style="margin-bottom: 1rem;">
+        <code id="mcp-url">https://bible-mcp.dws-cloud.com/mcp</code>
+        <button class="copy-btn" onclick="copyUrl()">Copy</button>
+      </div>
+
+      <div class="segmented-control">
+        <button class="segment active" onclick="showTab('claude')">
+          <svg width="16" height="16" viewBox="0 0 1200 1200" fill="currentColor"><path d="M 233.959793 800.214905 L 468.644287 668.536987 L 472.590637 657.100647 L 468.644287 650.738403 L 457.208069 650.738403 L 417.986633 648.322144 L 283.892639 644.69812 L 167.597321 639.865845 L 54.926208 633.825623 L 26.577238 627.785339 L 3.3e-05 592.751709 L 2.73832 575.27533 L 26.577238 559.248352 L 60.724873 562.228149 L 136.187973 567.382629 L 249.422867 575.194763 L 331.570496 580.026978 L 453.261841 592.671082 L 472.590637 592.671082 L 475.328857 584.859009 L 468.724915 580.026978 L 463.570557 575.194763 L 346.389313 495.785217 L 219.543671 411.865906 L 153.100723 363.543762 L 117.181267 339.060425 L 99.060455 316.107361 L 91.248367 266.01355 L 123.865784 230.093994 L 167.677887 233.073853 L 178.872513 236.053772 L 223.248367 270.201477 L 318.040283 343.570496 L 441.825592 434.738342 L 459.946411 449.798706 L 467.194672 444.64447 L 468.080597 441.020203 L 459.946411 427.409485 L 392.617493 305.718323 L 320.778564 181.932983 L 288.80542 130.630859 L 280.348999 99.865845 C 277.369171 87.221436 275.194641 76.590698 275.194641 63.624268 L 312.322174 13.20813 L 332.8591 6.604126 L 382.389313 13.20813 L 403.248352 31.328979 L 434.013519 101.71814 L 483.865753 212.537048 L 561.181274 363.221497 L 583.812134 407.919434 L 595.892639 449.315491 L 600.40271 461.959839 L 608.214783 461.959839 L 608.214783 454.711609 L 614.577271 369.825623 L 626.335632 265.61084 L 637.771851 131.516846 L 641.718201 93.745117 L 660.402832 48.483276 L 697.530334 24.000122 L 726.52356 37.852417 L 750.362549 72 L 747.060486 94.067139 L 732.886047 186.201416 L 705.100708 330.52356 L 686.979919 427.167847 L 697.530334 427.167847 L 709.61084 415.087341 L 758.496704 350.174561 L 840.644348 247.490051 L 876.885925 206.738342 L 919.167847 161.71814 L 946.308838 140.29541 L 997.61084 140.29541 L 1035.38269 196.429626 L 1018.469849 254.416199 L 965.637634 321.422852 L 921.825562 378.201538 L 859.006714 462.765259 L 819.785278 530.41626 L 823.409424 535.812073 L 832.75177 534.92627 L 974.657776 504.724915 L 1051.328979 490.872559 L 1142.818848 475.167786 L 1184.214844 494.496582 L 1188.724854 514.147644 L 1172.456421 554.335693 L 1074.604126 578.496765 L 959.838989 601.449829 L 788.939636 641.879272 L 786.845764 643.409485 L 789.261841 646.389343 L 866.255127 653.637634 L 899.194702 655.409424 L 979.812134 655.409424 L 1129.932861 666.604187 L 1169.154419 692.537109 L 1192.671265 724.268677 L 1188.724854 748.429688 L 1128.322144 779.194641 L 1046.818848 759.865845 L 856.590759 714.604126 L 791.355774 698.335754 L 782.335693 698.335754 L 782.335693 703.731567 L 836.69812 756.885986 L 936.322205 846.845581 L 1061.073975 962.81897 L 1067.436279 991.490112 L 1051.409424 1014.120911 L 1034.496704 1011.704712 L 924.885986 929.234924 L 882.604126 892.107544 L 786.845764 811.48999 L 780.483276 811.48999 L 780.483276 819.946289 L 802.550415 852.241699 L 919.087341 1027.409424 L 925.127625 1081.127686 L 916.671204 1098.604126 L 886.469849 1109.154419 L 853.288696 1103.114136 L 785.073914 1007.355835 L 714.684631 899.516785 L 657.906067 802.872498 L 650.979858 806.81897 L 617.476624 1167.704834 L 601.771851 1186.147705 L 565.530212 1200 L 535.328857 1177.046997 L 519.302124 1139.919556 L 535.328857 1066.550537 L 554.657776 970.792053 L 570.362488 894.68457 L 584.536926 800.134277 L 592.993347 768.724976 L 592.429626 766.630859 L 585.503479 767.516968 L 514.22821 865.369263 L 405.825531 1011.865906 L 320.053711 1103.677979 L 299.516815 1111.812256 L 263.919525 1093.369263 L 267.221497 1060.429688 L 287.114136 1031.114136 L 405.825531 880.107361 L 477.422913 786.52356 L 523.651062 732.483276 L 523.328918 724.671265 L 520.590698 724.671265 L 205.288605 929.395935 L 149.154434 936.644409 L 124.993355 914.01355 L 127.973183 876.885986 L 139.409409 864.80542 L 234.201385 799.570435 L 233.879227 799.8927 Z"/></svg>
+          Claude
+        </button>
+        <button class="segment" onclick="showTab('chatgpt')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.896zm16.597 3.855l-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08-4.778 2.758a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z"/></svg>
+          ChatGPT
+        </button>
+      </div>
+
+      <div class="tab-panel">
+        <div id="claude-tab" class="tab-content active">
+          <div class="steps">
+            <div class="step">
+              <span class="step-number">1</span>
+              <span class="step-content">Go to <strong>Claude.ai Settings → Connectors</strong></span>
+            </div>
+            <div class="step">
+              <span class="step-number">2</span>
+              <span class="step-content">Click <strong>"Add Connector"</strong> and select <strong>"MCP Server"</strong></span>
+            </div>
+            <div class="step">
+              <span class="step-number">3</span>
+              <span class="step-content">Paste the URL above and click <strong>"Add"</strong></span>
+            </div>
+            <div class="step">
+              <span class="step-number">4</span>
+              <span class="step-content">Start asking Claude about the Bible!</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="chatgpt-tab" class="tab-content">
+          <div class="steps">
+            <div class="step">
+              <span class="step-number">1</span>
+              <span class="step-content">Go to <strong>ChatGPT Settings → Apps & Connectors</strong></span>
+            </div>
+            <div class="step">
+              <span class="step-number">2</span>
+              <span class="step-content">Click <strong>"Add"</strong> and select <strong>"Connect an MCP Server"</strong></span>
+            </div>
+            <div class="step">
+              <span class="step-number">3</span>
+              <span class="step-content">Paste the URL above and click <strong>"Connect"</strong></span>
+            </div>
+            <div class="step">
+              <span class="step-number">4</span>
+              <span class="step-content">Start asking ChatGPT about the Bible!</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Available Tools</h2>
+
+      <div class="tool" style="border-color: var(--accent-blue); background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(88, 166, 255, 0.1) 100%);">
+        <div class="tool-header">
+          <span class="tool-name" style="background: var(--accent-blue); color: var(--bg-primary);">read_bible</span>
+          <span style="font-size: 0.75rem; color: var(--accent-blue); font-weight: 500;">Interactive</span>
+        </div>
+        <p class="tool-desc">Present Scripture with an interactive reader UI. Browse books, switch translations, navigate chapters.</p>
+        <div class="tool-examples">
+          Examples: <code>John 3:16</code>, <code>Romans 8:28-39</code>, <code>Genesis 1</code> — with hamburger menu to browse all books
+        </div>
+      </div>
+
+      <div class="tool">
+        <div class="tool-header">
+          <span class="tool-name">get_verse</span>
+        </div>
+        <p class="tool-desc">Retrieve verse text for context gathering and analysis.</p>
+        <div class="tool-examples">
+          Examples: <code>John 3:16</code>, <code>Psalm 23</code>, <code>Romans 8:28-39</code>, <code>Genesis 1:1-2:3</code>
+        </div>
+      </div>
+
+      <div class="tool">
+        <div class="tool-header">
+          <span class="tool-name">get_chapter</span>
+        </div>
+        <p class="tool-desc">Get a full chapter with navigation hints for sequential reading.</p>
+        <div class="tool-examples">
+          Examples: <code>Genesis 1</code>, <code>Psalm 23</code>, <code>Romans 8</code> — includes prev/next chapter links
+        </div>
+      </div>
+
+      <div class="tool">
+        <div class="tool-header">
+          <span class="tool-name">search_bible</span>
+        </div>
+        <p class="tool-desc">Full-text search across all 74,000+ verses. Filter by book or testament.</p>
+        <div class="tool-examples">
+          Examples: Search for <code>love</code>, <code>faith</code> in Romans, <code>peace</code> in New Testament
+        </div>
+      </div>
+
+      <div class="tool">
+        <div class="tool-header">
+          <span class="tool-name">list_books</span>
+        </div>
+        <p class="tool-desc">List all 86 books of the Bible including Apocrypha, with chapter counts.</p>
+        <div class="tool-examples">
+          Filter by: <code>OT</code> (Old Testament), <code>NT</code> (New Testament), <code>AP</code> (Apocrypha)
+        </div>
+      </div>
+
+      <div class="tool">
+        <div class="tool-header">
+          <span class="tool-name">list_translations</span>
+        </div>
+        <p class="tool-desc">View all available Bible translations with details.</p>
+      </div>
+
+      <div class="tool">
+        <div class="tool-header">
+          <span class="tool-name">get_random_verse</span>
+        </div>
+        <p class="tool-desc">Get a random verse for inspiration. Filter by book or testament.</p>
+        <div class="tool-examples">
+          Examples: Random <code>Psalm</code>, random from <code>New Testament</code>, random <code>Proverb</code>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Example Prompts</h2>
+      <div class="prompts-grid">
+        <div class="prompt">Present Romans 8:28-39</div>
+        <div class="prompt">Show me John 3:16 in the reader</div>
+        <div class="prompt">Search the Bible for 'faith' in the New Testament</div>
+        <div class="prompt">What does the Bible say about love?</div>
+        <div class="prompt">Show me a random Psalm</div>
+        <div class="prompt">List the books of the Apocrypha</div>
+        <div class="prompt">Find verses about forgiveness in Matthew</div>
+        <div class="prompt">Give me an encouraging verse from Proverbs</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Translations</h2>
+      <div class="translations-list">
+        <div class="translation">
+          <span class="translation-id">WEB</span>
+          <span class="translation-name">World English Bible (default)</span>
+        </div>
+        <div class="translation">
+          <span class="translation-id">KJV</span>
+          <span class="translation-name">King James Version</span>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <p>Powered by <a href="https://github.com/tuxr/bible-api">Bible API</a></p>
+      <p style="margin-top: 0.5rem;">Built with the <a href="https://modelcontextprotocol.io">Model Context Protocol</a></p>
+      <p style="margin-top: 0.5rem;"><a href="https://github.com/tuxr/bible-mcp">View on GitHub</a></p>
+    </footer>
+  </div>
+
+  <script>
+    function copyUrl() {
+      const url = document.getElementById('mcp-url').textContent;
+      navigator.clipboard.writeText(url).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+        }, 2000);
+      });
+    }
+
+    function showTab(tabName) {
+      // Update segment buttons
+      document.querySelectorAll('.segment').forEach(seg => seg.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+
+      // Update tab content
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      document.getElementById(tabName + '-tab').classList.add('active');
+    }
+  </script>
+</body>
+</html>
