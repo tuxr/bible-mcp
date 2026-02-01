@@ -1001,8 +1001,8 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
     <div class="menu-panel" id="menuPanel">
       <div class="menu-header">
         <h2>Books of the Bible</h2>
-        <button class="close-btn" id="closeMenuBtn">
-          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"/></svg>
+        <button class="close-btn" id="closeMenuBtn" aria-label="Close menu">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"/></svg>
         </button>
       </div>
       <div class="search-box">
@@ -1030,6 +1030,13 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
     let bookListCache = null;
     let expandedBook = null;
 
+    // HTML escape helper to prevent XSS
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
     function render() {
       if (!currentData) {
         contentEl.textContent = "Loading...";
@@ -1053,7 +1060,8 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
       const menuBtn = document.createElement("button");
       menuBtn.className = "menu-btn";
       menuBtn.title = "Browse books";
-      menuBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M1 2.75A.75.75 0 0 1 1.75 2h12.5a.75.75 0 0 1 0 1.5H1.75A.75.75 0 0 1 1 2.75Zm0 5A.75.75 0 0 1 1.75 7h12.5a.75.75 0 0 1 0 1.5H1.75A.75.75 0 0 1 1 7.75ZM1.75 12h12.5a.75.75 0 0 1 0 1.5H1.75a.75.75 0 0 1 0-1.5Z"/></svg>';
+      menuBtn.setAttribute("aria-label", "Browse books");
+      menuBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1 2.75A.75.75 0 0 1 1.75 2h12.5a.75.75 0 0 1 0 1.5H1.75A.75.75 0 0 1 1 2.75Zm0 5A.75.75 0 0 1 1.75 7h12.5a.75.75 0 0 1 0 1.5H1.75A.75.75 0 0 1 1 7.75ZM1.75 12h12.5a.75.75 0 0 1 0 1.5H1.75a.75.75 0 0 1 0-1.5Z"/></svg>';
       menuBtn.addEventListener("click", openMenu);
       header.appendChild(menuBtn);
 
@@ -1116,7 +1124,8 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
         const copyBtn = document.createElement("button");
         copyBtn.className = "copy-btn";
         copyBtn.title = "Copy verses";
-        copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>';
+        copyBtn.setAttribute("aria-label", "Copy verses");
+        copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>';
         copyBtn.addEventListener("click", () => copyVerses(copyBtn));
         middleContainer.appendChild(copyBtn);
 
@@ -1147,7 +1156,8 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
         const copyBtn = document.createElement("button");
         copyBtn.className = "copy-btn";
         copyBtn.title = "Copy verses";
-        copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>';
+        copyBtn.setAttribute("aria-label", "Copy verses");
+        copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>';
         copyBtn.addEventListener("click", () => copyVerses(copyBtn));
         navBar.appendChild(copyBtn);
       }
@@ -1295,13 +1305,16 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
 
         for (const book of filtered) {
           const isExpanded = expandedBook === book.id;
-          html += '<div class="book-row' + (isExpanded ? ' expanded' : '') + '" data-book="' + book.id + '" data-name="' + book.name + '" data-chapters="' + book.chapters + '">';
-          html += '<span class="book-name">' + book.name + '</span>';
+          // Escape API data to prevent XSS if backend is compromised
+          const safeId = escapeHtml(book.id);
+          const safeName = escapeHtml(book.name);
+          html += '<div class="book-row' + (isExpanded ? ' expanded' : '') + '" data-book="' + safeId + '" data-name="' + safeName + '" data-chapters="' + book.chapters + '">';
+          html += '<span class="book-name">' + safeName + '</span>';
           html += '<span class="book-chapters-count">' + book.chapters + ' ch</span>';
           html += '</div>';
-          html += '<div class="chapter-grid' + (isExpanded ? ' expanded' : '') + '" data-book-chapters="' + book.id + '">';
+          html += '<div class="chapter-grid' + (isExpanded ? ' expanded' : '') + '" data-book-chapters="' + safeId + '">';
           for (let i = 1; i <= book.chapters; i++) {
-            html += '<button class="chapter-btn" data-book-name="' + book.name + '" data-chapter="' + i + '">' + i + '</button>';
+            html += '<button class="chapter-btn" data-book-name="' + safeName + '" data-chapter="' + i + '">' + i + '</button>';
           }
           html += '</div>';
         }
@@ -1310,7 +1323,13 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
       }
 
       if (!hasResults) {
-        html = '<div class="no-results">No books found for "' + filter + '"</div>';
+        // Use DOM API to safely display user input (prevents XSS)
+        bookListEl.innerHTML = "";
+        const noResults = document.createElement("div");
+        noResults.className = "no-results";
+        noResults.textContent = 'No books found for "' + filter + '"';
+        bookListEl.appendChild(noResults);
+        return;
       }
 
       bookListEl.innerHTML = html;
@@ -1365,6 +1384,12 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
     });
     bookSearchEl.addEventListener("input", (e) => {
       renderBookList(e.target.value);
+    });
+    // ESC key closes menu
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && menuBackdrop.classList.contains("open")) {
+        closeMenu();
+      }
     });
 
     app.ontoolresult = (result) => {
