@@ -17,7 +17,7 @@ A public MCP (Model Context Protocol) server that provides Bible verse lookup an
 
 | Tool | Description |
 |------|-------------|
-| `get_verse` | Fetch verses by reference (e.g., "John 3:16", "Psalm 23", "Romans 8:28-39") |
+| `get_verse` | Fetch verses by reference (e.g., "John 3:16", "Psalm 23", "Romans 8:28-39", "Romans 14:14, 22-23") |
 | `get_chapter` | Get a full chapter with navigation hints for sequential reading |
 | `search_bible` | Search for words/phrases with book and testament filters |
 | `list_books` | List Bible books with chapter counts, filterable by testament |
@@ -70,6 +70,7 @@ npm run deploy
 Once connected, you can ask Claude things like:
 
 - "Look up John 3:16"
+- "Read Romans 14:14, 22-23" (comma-separated with context inheritance)
 - "Search the Bible for 'faith' in the New Testament"
 - "Show me a random Psalm"
 - "List the books of the Apocrypha"

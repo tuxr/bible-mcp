@@ -999,9 +999,15 @@ server.tool(
   "get_verse",
   `Retrieve verse text by reference. Returns formatted text with reference and translation.
 
-Examples: "John 3:16", "Romans 8:28-39", "Psalm 23"`,
+Examples: "John 3:16", "Romans 8:28-39", "Psalm 23"
+
+Supports comma-separated references with context inheritance:
+- "Romans 14:14, 22-23" (inherits book and chapter)
+- "Psalm 23, 24" (inherits book)
+- "Genesis 1:1, 2:3" (inherits book, new chapter)
+- "John 3:16, Romans 8:28" (independent references)`,
   {
-    reference: z.string().describe("Bible reference (e.g., 'John 3:16', 'Psalm 23', 'Romans 8:28-39')"),
+    reference: z.string().describe("Bible reference (e.g., 'John 3:16', 'Psalm 23', 'Romans 8:28-39', 'Romans 14:14, 22-23')"),
     translation: z.preprocess(
       (val) => (typeof val === "string" ? val.toLowerCase() : val),
       z.enum(["web", "kjv"]).optional()
@@ -1445,9 +1451,9 @@ registerAppTool(
     title: "Bible Reader",
     description: `Open Scripture in an interactive reader with navigation and translation toggle.
 
-Supports: verses ("John 3:16"), ranges ("Romans 8:28-39"), chapters ("Genesis 1")`,
+Supports: verses ("John 3:16"), ranges ("Romans 8:28-39"), chapters ("Genesis 1"), comma-separated ("Romans 14:14, 22-23")`,
     inputSchema: {
-      reference: z.string().describe("Bible reference - verse (John 3:16), range (Romans 8:28-39), or chapter (Genesis 1)"),
+      reference: z.string().describe("Bible reference - verse (John 3:16), range (Romans 8:28-39), chapter (Genesis 1), or comma-separated (Romans 14:14, 22-23)"),
       translation: z.preprocess(
         (val) => (typeof val === "string" ? val.toLowerCase() : val),
         z.enum(["web", "kjv"]).optional()
