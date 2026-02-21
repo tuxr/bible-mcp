@@ -258,7 +258,7 @@ All enum parameters use `z.preprocess` to normalize case before validation:
 
 ## Version Constraints
 
-The `@modelcontextprotocol/sdk` version must match the version bundled in `agents` package (currently 1.25.2).
+The `@modelcontextprotocol/sdk` version must match the version bundled in `agents` package (currently 1.26.0).
 
 ## Local Development Note
 
