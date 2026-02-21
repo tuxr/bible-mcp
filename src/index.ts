@@ -985,8 +985,9 @@ function isError(data: unknown): data is ApiError {
 }
 
 // =============================================================================
-// MCP Server
+// MCP Server Factory (new instance per request to avoid cross-client data leaks)
 // =============================================================================
+function createServer() {
 const server = new McpServer({
   name: "Bible MCP",
   version: "2.1.0",
@@ -1577,11 +1578,12 @@ registerAppResource(
   })
 );
 
+return server;
+}
+
 // =============================================================================
 // Export Handler
 // =============================================================================
-const mcpHandler = createMcpHandler(server);
-
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -1607,8 +1609,10 @@ export default {
       });
     }
 
-    // MCP protocol handler
+    // MCP protocol handler - new server instance per request
     if (path === "/mcp" || path.startsWith("/mcp/")) {
+      const server = createServer();
+      const mcpHandler = createMcpHandler(server);
       return mcpHandler(request, env, ctx);
     }
 
