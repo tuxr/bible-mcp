@@ -45,8 +45,9 @@ The `fetchApi<T>()` function automatically detects which mode to use based on av
 - `env.BIBLE_API` - Service binding (optional, for same-account deployments)
 - `env.BIBLE_API_URL` - Public API URL (optional, defaults to hosted API)
 - `fetchApi<T>()` - Calls API via service binding or public HTTPS
-- Tools registered via `server.tool(name, description, zodSchema, handler)`
-- Prompts registered via `server.registerPrompt(name, options, handler)`
+- `createServer()` - Factory that creates a new `McpServer` with all tools/prompts per request (required by SDK 1.26.0+ to prevent cross-client data leaks)
+- Tools registered via `server.tool(name, description, zodSchema, handler)` inside `createServer()`
+- Prompts registered via `server.registerPrompt(name, options, handler)` inside `createServer()`
 
 **Bible API endpoints used:**
 - `GET /v1/verses/{reference}?translation=...` - Fetch verses
