@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { createServer } from "./mcp-server.ts";
+import { createServer, TRANSLATION_DESCRIPTION } from "./mcp-server.ts";
 import {
   createRouteMockFetchApi,
   createTestFetchApi,
@@ -28,11 +28,24 @@ const expectedMcpAppError = {
   structuredContent: { error: RATE_LIMIT_MESSAGE },
 };
 
-async function callMcpTool(
+const TOOLS_WITH_TRANSLATION = [
+  "get_verse",
+  "get_chapter",
+  "search_bible",
+  "get_random_verse",
+  "read_bible",
+] as const;
+
+const PROMPTS_WITH_TRANSLATION = [
+  "daily-verse",
+  "study-passage",
+  "topical-search",
+] as const;
+
+async function withMcpClient<T>(
   server: McpServer,
-  name: string,
-  args: Record<string, unknown> = {}
-) {
+  fn: (client: Client) => Promise<T>
+): Promise<T> {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test-client", version: "1.0.0" });
 
@@ -40,11 +53,21 @@ async function callMcpTool(
   await client.connect(clientTransport);
 
   try {
-    return await client.callTool({ name, arguments: args });
+    return await fn(client);
   } finally {
     await client.close();
     await server.close();
   }
+}
+
+async function callMcpTool(
+  server: McpServer,
+  name: string,
+  args: Record<string, unknown> = {}
+) {
+  return withMcpClient(server, (client) =>
+    client.callTool({ name, arguments: args })
+  );
 }
 
 function createRateLimitedServer() {
@@ -195,6 +218,43 @@ describe("MCP tool handlers (integration)", () => {
 });
 
 describe("MCP translation support", () => {
+  it("translationSchema description documents WLC OT-only constraint", () => {
+    assert.match(TRANSLATION_DESCRIPTION, /'wlc'/);
+    assert.match(TRANSLATION_DESCRIPTION, /Hebrew Old Testament only/);
+    assert.match(TRANSLATION_DESCRIPTION, /NT references return no results/);
+    assert.match(TRANSLATION_DESCRIPTION, /list_translations/);
+  });
+
+  it("propagates translationSchema description to all tools and prompts", async () => {
+    const server = createBibleDataServer();
+
+    const { tools, prompts } = await withMcpClient(server, async (client) => {
+      const [toolsResult, promptsResult] = await Promise.all([
+        client.listTools(),
+        client.listPrompts(),
+      ]);
+      return { tools: toolsResult.tools, prompts: promptsResult.prompts };
+    });
+
+    for (const toolName of TOOLS_WITH_TRANSLATION) {
+      const tool = tools.find((entry) => entry.name === toolName);
+      assert.ok(tool, `expected tool ${toolName}`);
+      const properties = tool.inputSchema?.properties as
+        | Record<string, { description?: string }>
+        | undefined;
+      const description = properties?.translation?.description;
+      assert.equal(description, TRANSLATION_DESCRIPTION);
+    }
+
+    for (const promptName of PROMPTS_WITH_TRANSLATION) {
+      const prompt = prompts.find((entry) => entry.name === promptName);
+      assert.ok(prompt, `expected prompt ${promptName}`);
+      const description = prompt.arguments?.find((arg) => arg.name === "translation")
+        ?.description;
+      assert.equal(description, TRANSLATION_DESCRIPTION);
+    }
+  });
+
   it("list_translations includes WLC in mocked API data", async () => {
     const result = await callMcpTool(createBibleDataServer(), "list_translations");
 
@@ -221,6 +281,23 @@ describe("MCP translation support", () => {
     const versePath = requestedPaths.find((path) => path.startsWith("/verses/"));
     assert.ok(versePath);
     assert.doesNotMatch(versePath!, /translation=/);
+  });
+
+  it("get_verse returns not-found for WLC NT reference", async () => {
+    const { fetchApi } = createRouteMockFetchApi((path) => {
+      if (path.startsWith("/verses/") && path.includes("translation=wlc")) {
+        return "NOT_FOUND";
+      }
+      return "NOT_FOUND";
+    });
+    const result = await callMcpTool(createServer(fetchApi), "get_verse", {
+      reference: "John 3:16",
+      translation: "wlc",
+    });
+
+    assert.equal(result.isError, true);
+    const content = result.content as Array<{ type: string; text: string }>;
+    assert.match(content[0].text, /Could not find passage: John 3:16/);
   });
 
   it("get_verse accepts translation=wlc and returns Hebrew text", async () => {

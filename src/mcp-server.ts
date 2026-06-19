@@ -75,8 +75,8 @@ interface ChapterResponse {
   };
 }
 
-const TRANSLATION_DESCRIPTION =
-  "Translation ID: 'web' (World English Bible, default), 'kjv' (King James Version), 'wlc' (Westminster Leningrad Codex Hebrew), or any available translation from list_translations";
+export const TRANSLATION_DESCRIPTION =
+  "Translation ID: 'web' (World English Bible, default), 'kjv' (King James Version), 'wlc' (Westminster Leningrad Codex — Hebrew Old Testament only; NT references return no results), or any available translation from list_translations";
 
 const translationSchema = z.preprocess(
   (val) => (typeof val === "string" ? val.toLowerCase() : val),
