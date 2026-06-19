@@ -4,6 +4,12 @@ import { z } from "zod";
 import type { GetPromptResult } from "@modelcontextprotocol/sdk/types.js";
 import { env } from "cloudflare:workers";
 import { registerAppTool, registerAppResource, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
+import {
+  createFetchApi,
+  formatToolError,
+  isApiError as isError,
+  type BibleApiEnv,
+} from "./api-client.js";
 
 // =============================================================================
 // Favicon SVG - Simple book icon
@@ -888,17 +894,6 @@ const BIBLE_READER_HTML = `<!DOCTYPE html>
 // Types
 // =============================================================================
 
-// Environment bindings
-interface Env {
-  // Service binding for same-account Worker-to-Worker communication (optional)
-  BIBLE_API?: Fetcher;
-  // Public API URL for cross-account usage (fallback when no service binding)
-  BIBLE_API_URL?: string;
-}
-
-// Default public API URL
-const DEFAULT_BIBLE_API_URL = "https://bible-api.dws-cloud.com";
-
 interface Translation {
   id: string;
   name: string;
@@ -955,34 +950,10 @@ interface ChapterResponse {
   };
 }
 
-interface ApiError {
-  error: string;
-}
-
 // =============================================================================
 // API Client - Uses Service Binding (same account) or Public API (cross-account)
 // =============================================================================
-async function fetchApi<T>(path: string): Promise<T | ApiError> {
-  const envBindings = env as unknown as Env;
-
-  let response: Response;
-
-  if (envBindings.BIBLE_API) {
-    // Service binding: direct Worker-to-Worker communication (same Cloudflare account)
-    // The URL host doesn't matter for service bindings - it's routed internally
-    response = await envBindings.BIBLE_API.fetch(`https://internal/v1${path}`);
-  } else {
-    // Public API: standard HTTPS fetch (cross-account or local development)
-    const baseUrl = envBindings.BIBLE_API_URL || DEFAULT_BIBLE_API_URL;
-    response = await fetch(`${baseUrl}/v1${path}`);
-  }
-
-  return response.json() as Promise<T | ApiError>;
-}
-
-function isError(data: unknown): data is ApiError {
-  return typeof data === "object" && data !== null && "error" in data;
-}
+const fetchApi = createFetchApi(env as unknown as BibleApiEnv);
 
 // =============================================================================
 // MCP Server Factory (new instance per request to avoid cross-client data leaks)
@@ -1023,10 +994,7 @@ Supports comma-separated references with context inheritance:
     const data = await fetchApi<VerseResponse>(path);
 
     if (isError(data)) {
-      return {
-        content: [{ type: "text", text: `Error: ${data.error}` }],
-        isError: true,
-      };
+      return formatToolError(data, { reference });
     }
 
     const output = [
@@ -1065,10 +1033,7 @@ Examples: ("Genesis", 1), ("PSA", 23), ("ROM", 8)`,
     const data = await fetchApi<ChapterResponse>(path);
 
     if (isError(data)) {
-      return {
-        content: [{ type: "text", text: `Error: ${data.error}` }],
-        isError: true,
-      };
+      return formatToolError(data, { book, chapter });
     }
 
     // Format verses
@@ -1141,10 +1106,7 @@ Examples: "love", "faith" in Romans, "peace" in New Testament`,
     const data = await fetchApi<SearchResponse>(`/search?${params.toString()}`);
 
     if (isError(data)) {
-      return {
-        content: [{ type: "text", text: `Error: ${data.error}` }],
-        isError: true,
-      };
+      return formatToolError(data, { query });
     }
 
     if (data.results.length === 0) {
@@ -1189,10 +1151,10 @@ server.tool(
     const data = await fetchApi<Book[]>(`/books${params}`);
 
     if (isError(data)) {
-      return {
-        content: [{ type: "text", text: `Error: ${data.error}` }],
-        isError: true,
-      };
+      return formatToolError(
+        data,
+        testament && testament !== "ALL" ? { testament } : undefined
+      );
     }
 
     // Group by testament
@@ -1233,10 +1195,7 @@ server.tool(
     const data = await fetchApi<TranslationInfo[]>("/translations");
 
     if (isError(data)) {
-      return {
-        content: [{ type: "text", text: `Error: ${data.error}` }],
-        isError: true,
-      };
+      return formatToolError(data);
     }
 
     const lines = ["📚 AVAILABLE TRANSLATIONS", "─".repeat(40), ""];
@@ -1283,10 +1242,7 @@ Filters: book="PSA" (Psalms only), testament="NT" (New Testament only)`,
     const data = await fetchApi<VerseResponse>(`/random${query ? `?${query}` : ""}`);
 
     if (isError(data)) {
-      return {
-        content: [{ type: "text", text: `Error: ${data.error}` }],
-        isError: true,
-      };
+      return formatToolError(data, { book, testament });
     }
 
     const output = [
@@ -1482,11 +1438,11 @@ Supports: verses ("John 3:16"), ranges ("Romans 8:28-39"), chapters ("Genesis 1"
       const data = await fetchApi<ChapterResponse>(path);
 
       if (isError(data)) {
-        return {
-          content: [{ type: "text", text: `Error: ${data.error}` }],
-          structuredContent: { error: data.error },
-          isError: true,
-        };
+        return formatToolError(
+          data,
+          { book: chapterInfo.book, chapter: chapterInfo.chapter },
+          { includeStructuredContent: true }
+        );
       }
 
       // Text fallback for non-MCP-Apps clients
@@ -1517,11 +1473,7 @@ Supports: verses ("John 3:16"), ranges ("Romans 8:28-39"), chapters ("Genesis 1"
       const data = await fetchApi<VerseResponse>(path);
 
       if (isError(data)) {
-        return {
-          content: [{ type: "text", text: `Error: ${data.error}` }],
-          structuredContent: { error: data.error },
-          isError: true,
-        };
+        return formatToolError(data, { reference }, { includeStructuredContent: true });
       }
 
       // Text fallback for non-MCP-Apps clients
@@ -1585,7 +1537,7 @@ return server;
 // Export Handler
 // =============================================================================
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: BibleApiEnv, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
 
