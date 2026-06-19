@@ -1,9 +1,14 @@
+import { BIBLE_READER_INLINE_UTILS } from "./translation-utils.ts";
+
 export const BIBLE_READER_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="dark light">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;700&display=swap" rel="stylesheet">
   <title>Bible Reader</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -82,6 +87,19 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
       border-radius: 6px;
       padding: 0.25rem;
       flex-shrink: 0;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .translation-toggle.loading,
+    .translation-toggle.error {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .translation-toggle.error {
+      color: #f85149;
     }
 
     .translation-btn {
@@ -111,12 +129,30 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
       margin: 1rem 0;
     }
 
+    .verses.rtl {
+      direction: rtl;
+      text-align: right;
+      font-family: "Noto Sans Hebrew", "David Libre", "Ezra SIL", "SBL Hebrew", "Times New Roman", serif;
+      font-size: 1.15rem;
+    }
+
+    .verse {
+      display: inline;
+      unicode-bidi: isolate;
+    }
+
     .verse-num {
       color: var(--accent);
       font-size: 0.75rem;
       font-weight: 600;
       vertical-align: super;
       margin-right: 0.25rem;
+      unicode-bidi: isolate;
+    }
+
+    .verses.rtl .verse-num {
+      margin-right: 0;
+      margin-left: 0.25rem;
     }
 
     .nav-bar {
@@ -436,12 +472,64 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
     let initialReference = null;
     let bookListCache = null;
     let expandedBook = null;
+    let translationsCache = null;
+    let translationsLoading = false;
+    let translationsError = null;
 
     // HTML escape helper to prevent XSS
     function escapeHtml(str) {
       const div = document.createElement("div");
       div.textContent = str;
       return div.innerHTML;
+    }
+
+    ${BIBLE_READER_INLINE_UTILS}
+
+    function translationButtonLabel(translation) {
+      return (translation.shortName || translation.id || "").toUpperCase();
+    }
+
+    function buildTranslationToggle() {
+      const toggleDiv = document.createElement("div");
+      toggleDiv.className = "translation-toggle";
+
+      if (translationsLoading && !(translationsCache?.length > 0)) {
+        toggleDiv.classList.add("loading");
+        toggleDiv.textContent = "Loading translations...";
+        return toggleDiv;
+      }
+
+      if (translationsError && !(translationsCache?.length > 0)) {
+        toggleDiv.classList.add("error");
+        toggleDiv.textContent = "Translations unavailable";
+        toggleDiv.title = translationsError;
+        const retryBtn = document.createElement("button");
+        retryBtn.className = "translation-btn";
+        retryBtn.textContent = "Retry";
+        retryBtn.addEventListener("click", () => {
+          translationsCache = null;
+          translationsError = null;
+          loadTranslations();
+        });
+        toggleDiv.appendChild(document.createTextNode(" "));
+        toggleDiv.appendChild(retryBtn);
+        return toggleDiv;
+      }
+
+      const translations = translationsCache?.length
+        ? translationsCache
+        : [{ id: currentTranslation, name: currentTranslation.toUpperCase() }];
+
+      for (const t of translations) {
+        const btn = document.createElement("button");
+        btn.className = "translation-btn" + (currentTranslation === t.id ? " active" : "");
+        btn.textContent = translationButtonLabel(t);
+        btn.title = t.name || t.id;
+        btn.addEventListener("click", () => switchTranslation(t.id));
+        toggleDiv.appendChild(btn);
+      }
+
+      return toggleDiv;
     }
 
     function render() {
@@ -458,7 +546,7 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
       }
 
       contentEl.className = "";
-      const { reference, translation, verses, viewType, navigation, chapterContext } = currentData;
+      const { reference, verses, viewType, navigation, chapterContext } = currentData;
 
       // Build header with menu button
       const header = document.createElement("div");
@@ -477,25 +565,21 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
       refSpan.textContent = reference;
       header.appendChild(refSpan);
 
-      const toggleDiv = document.createElement("div");
-      toggleDiv.className = "translation-toggle";
-      ["web", "kjv"].forEach(t => {
-        const btn = document.createElement("button");
-        btn.className = "translation-btn" + (currentTranslation === t ? " active" : "");
-        btn.textContent = t.toUpperCase();
-        btn.addEventListener("click", () => switchTranslation(t));
-        toggleDiv.appendChild(btn);
-      });
-      header.appendChild(toggleDiv);
+      header.appendChild(buildTranslationToggle());
 
+      const rtl = isRtlContent(currentData, currentTranslation);
       const versesDiv = document.createElement("div");
-      versesDiv.className = "verses";
+      versesDiv.className = "verses" + (rtl ? " rtl" : "");
+      versesDiv.setAttribute("dir", rtl ? "rtl" : "ltr");
       verses.forEach(v => {
+        const verseSpan = document.createElement("span");
+        verseSpan.className = "verse";
         const num = document.createElement("span");
         num.className = "verse-num";
         num.textContent = v.verse;
-        versesDiv.appendChild(num);
-        versesDiv.appendChild(document.createTextNode(v.text + " "));
+        verseSpan.appendChild(num);
+        verseSpan.appendChild(document.createTextNode(v.text + " "));
+        versesDiv.appendChild(verseSpan);
       });
 
       const navBar = document.createElement("div");
@@ -623,13 +707,45 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
 
     function copyVerses(btn) {
       if (!currentData) return;
-      const text = currentData.reference + " (" + currentData.translation.name + ")\\n\\n" +
-        currentData.verses.map(v => v.verse + ". " + v.text).join("\\n");
+      const translationName = currentData.translation?.name || currentTranslation.toUpperCase();
+      const verseLines = currentData.verses.map(v => v.verse + ". " + v.text);
+      const text = currentData.reference + " (" + translationName + ")\\n\\n" + verseLines.join("\\n");
       navigator.clipboard.writeText(text);
       btn.textContent = "✓";
       setTimeout(() => {
         btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></svg>';
       }, 1500);
+    }
+
+    async function loadTranslations() {
+      if ((translationsCache?.length > 0) || translationsLoading) return;
+      translationsLoading = true;
+      translationsError = null;
+
+      try {
+        const result = await withRetry(async () => {
+          return await app.callServerTool({
+            name: "list_translations",
+            arguments: {},
+          });
+        });
+        const text = result.content?.[0]?.text || "";
+        const parsed = parseTranslationsList(text);
+        if (!parsed.length) {
+          translationsCache = null;
+          translationsError = "No translations returned";
+        } else {
+          translationsCache = parsed;
+        }
+      } catch (err) {
+        translationsCache = null;
+        translationsError = err?.message || "Failed to load translations";
+      } finally {
+        translationsLoading = false;
+        if (currentData && !currentData.error) {
+          render();
+        }
+      }
     }
 
     // Menu functions
@@ -816,8 +932,10 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
     app.ontoolresult = (result) => {
       if (result.structuredContent) {
         currentData = result.structuredContent;
-        currentTranslation = result.structuredContent.translation?.id || "web";
-        initialReference = result.structuredContent.reference;
+        currentTranslation = result.structuredContent.translation?.id || currentTranslation || "web";
+        if (!initialReference) {
+          initialReference = result.structuredContent.reference;
+        }
         render();
       }
     };
@@ -829,6 +947,7 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
     };
 
     await app.connect();
+    loadTranslations();
 
     const ctx = app.getHostContext();
     if (ctx?.theme) {

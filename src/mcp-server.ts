@@ -12,6 +12,7 @@ import {
   type FetchApi,
 } from "./api-client.ts";
 import { BIBLE_READER_HTML } from "./bible-reader-html.ts";
+import { readerStructuredContent } from "./translation-utils.ts";
 
 // =============================================================================
 // Types
@@ -20,6 +21,7 @@ import { BIBLE_READER_HTML } from "./bible-reader-html.ts";
 interface Translation {
   id: string;
   name: string;
+  language?: string;
 }
 
 interface Verse {
@@ -73,6 +75,14 @@ interface ChapterResponse {
   };
 }
 
+const TRANSLATION_DESCRIPTION =
+  "Translation ID: 'web' (World English Bible, default), 'kjv' (King James Version), 'wlc' (Westminster Leningrad Codex Hebrew), or any available translation from list_translations";
+
+const translationSchema = z.preprocess(
+  (val) => (typeof val === "string" ? val.toLowerCase() : val),
+  z.string().optional()
+).describe(TRANSLATION_DESCRIPTION);
+
 // =============================================================================
 // MCP Server Factory (new instance per request to avoid cross-client data leaks)
 // =============================================================================
@@ -98,10 +108,7 @@ export function createServer(fetchApi: FetchApi) {
   - "John 3:16, Romans 8:28" (independent references)`,
     {
       reference: z.string().describe("Bible reference (e.g., 'John 3:16', 'Psalm 23', 'Romans 8:28-39', 'Romans 14:14, 22-23')"),
-      translation: z.preprocess(
-        (val) => (typeof val === "string" ? val.toLowerCase() : val),
-        z.enum(["web", "kjv"]).optional()
-      ).describe("Translation: 'web' (World English Bible, default) or 'kjv' (King James Version)"),
+      translation: translationSchema,
     },
     async ({ reference, translation }) => {
       const params = new URLSearchParams();
@@ -137,10 +144,7 @@ export function createServer(fetchApi: FetchApi) {
     {
       book: z.string().describe("Book name, abbreviation, or ID (e.g., 'Genesis', 'Gen', 'GEN')"),
       chapter: z.number().describe("Chapter number"),
-      translation: z.preprocess(
-        (val) => (typeof val === "string" ? val.toLowerCase() : val),
-        z.enum(["web", "kjv"]).optional()
-      ).describe("Translation: 'web' (default) or 'kjv'"),
+      translation: translationSchema,
     },
     async ({ book, chapter, translation }) => {
       const params = new URLSearchParams();
@@ -214,12 +218,14 @@ export function createServer(fetchApi: FetchApi) {
         .max(50)
         .optional()
         .describe("Max results to return (default: 20, max: 50)"),
+      translation: translationSchema,
     },
-    async ({ query, book, testament, limit }) => {
+    async ({ query, book, testament, limit, translation }) => {
       const params = new URLSearchParams({ q: query });
       if (book) params.set("book", book);
       if (testament) params.set("testament", testament);
       if (limit) params.set("limit", String(limit));
+      if (translation) params.set("translation", translation);
   
       const data = await fetchApi<SearchResponse>(`/search?${params.toString()}`);
   
@@ -307,7 +313,7 @@ export function createServer(fetchApi: FetchApi) {
   // =============================================================================
   server.tool(
     "list_translations",
-    "List all available Bible translations.",
+    "List all available Bible translations (WEB, KJV, WLC Hebrew, and others).",
     {},
     async () => {
       const data = await fetchApi<TranslationInfo[]>("/translations");
@@ -338,10 +344,7 @@ export function createServer(fetchApi: FetchApi) {
   
   Filters: book="PSA" (Psalms only), testament="NT" (New Testament only)`,
     {
-      translation: z.preprocess(
-        (val) => (typeof val === "string" ? val.toLowerCase() : val),
-        z.enum(["web", "kjv"]).optional()
-      ).describe("Translation: 'web' (default) or 'kjv'"),
+      translation: translationSchema,
       book: z.string()
         .optional()
         .describe("Filter by book code (e.g., 'PSA', 'PRO', 'ROM')"),
@@ -389,12 +392,14 @@ export function createServer(fetchApi: FetchApi) {
           (val) => (typeof val === "string" ? val.toUpperCase() : val),
           z.enum(["OT", "NT", "AP"]).optional()
         ).describe("Filter by testament: OT (Old), NT (New), AP (Apocrypha)"),
+        translation: translationSchema,
       },
     },
-    ({ testament }): GetPromptResult => {
+    ({ testament, translation }): GetPromptResult => {
       const testamentText = testament === "OT" ? " from the Old Testament" :
                             testament === "NT" ? " from the New Testament" :
                             testament === "AP" ? " from the Apocrypha" : "";
+      const translationText = translation ? ` in ${translation.toUpperCase()}` : "";
   
       return {
         messages: [
@@ -402,7 +407,7 @@ export function createServer(fetchApi: FetchApi) {
             role: "user",
             content: {
               type: "text",
-              text: `Get me a random verse${testamentText} for today.
+              text: `Get me a random verse${testamentText}${translationText} for today.
   
   Please:
   1. Display the complete verse in a blockquote with the reference and translation
@@ -425,10 +430,7 @@ export function createServer(fetchApi: FetchApi) {
       description: "Deep dive into a Bible passage with context and analysis",
       argsSchema: {
         reference: z.string().describe("Bible reference (e.g., 'Romans 8:28-39', 'Psalm 23')"),
-        translation: z.preprocess(
-          (val) => (typeof val === "string" ? val.toLowerCase() : val),
-          z.enum(["web", "kjv"]).optional()
-        ).describe("Translation: 'web' (default) or 'kjv'"),
+        translation: translationSchema,
       },
     },
     ({ reference, translation }): GetPromptResult => ({
@@ -465,12 +467,14 @@ export function createServer(fetchApi: FetchApi) {
           (val) => (typeof val === "string" ? val.toUpperCase() : val),
           z.enum(["OT", "NT", "AP"]).optional()
         ).describe("Filter by testament: OT (Old), NT (New), AP (Apocrypha)"),
+        translation: translationSchema,
       },
     },
-    ({ topic, testament }): GetPromptResult => {
+    ({ topic, testament, translation }): GetPromptResult => {
       const testamentText = testament === "OT" ? " in the Old Testament" :
                             testament === "NT" ? " in the New Testament" :
                             testament === "AP" ? " in the Apocrypha" : "";
+      const translationText = translation ? ` using the ${translation.toUpperCase()} translation` : "";
   
       return {
         messages: [
@@ -478,7 +482,7 @@ export function createServer(fetchApi: FetchApi) {
             role: "user",
             content: {
               type: "text",
-              text: `Search the Bible for verses about "${topic}"${testamentText}.
+              text: `Search the Bible for verses about "${topic}"${testamentText}${translationText}.
   
   Please:
   1. Find relevant verses using the search tool
@@ -529,16 +533,21 @@ export function createServer(fetchApi: FetchApi) {
   Supports: verses ("John 3:16"), ranges ("Romans 8:28-39"), chapters ("Genesis 1"), comma-separated ("Romans 14:14, 22-23")`,
       inputSchema: {
         reference: z.string().describe("Bible reference - verse (John 3:16), range (Romans 8:28-39), chapter (Genesis 1), or comma-separated (Romans 14:14, 22-23)"),
-        translation: z.preprocess(
-          (val) => (typeof val === "string" ? val.toLowerCase() : val),
-          z.enum(["web", "kjv"]).optional()
-        ).describe("Translation (default: web)"),
+        translation: translationSchema,
       },
       _meta: {
         ui: {
           resourceUri: BIBLE_READER_RESOURCE_URI,
           csp: {
-            resourceDomains: ["https://unpkg.com"],
+            resourceDomains: [
+              "https://unpkg.com",
+              "https://fonts.googleapis.com",
+              "https://fonts.gstatic.com",
+            ],
+            connectDomains: [
+              "https://fonts.googleapis.com",
+              "https://fonts.gstatic.com",
+            ],
           },
         },
       },
@@ -575,15 +584,18 @@ export function createServer(fetchApi: FetchApi) {
         // Structured content for the UI - chapter view with navigation
         return {
           content: [{ type: "text", text: textOutput }],
-          structuredContent: {
-            viewType: "chapter",
-            reference: `${data.book.name} ${data.chapter}`,
-            book: data.book,
-            chapter: data.chapter,
-            translation: data.translation,
-            verses: data.verses,
-            navigation: data.navigation,
-          },
+          structuredContent: readerStructuredContent(
+            {
+              viewType: "chapter",
+              reference: `${data.book.name} ${data.chapter}`,
+              book: data.book,
+              chapter: data.chapter,
+              verses: data.verses,
+              navigation: data.navigation,
+            },
+            data.translation,
+            data.translation.language
+          ),
         };
       } else {
         // Verse reference - use verse API
@@ -613,13 +625,16 @@ export function createServer(fetchApi: FetchApi) {
         // Structured content for the UI - verse view with chapter context
         return {
           content: [{ type: "text", text: textOutput }],
-          structuredContent: {
-            viewType: "verses",
-            reference: data.reference,
-            translation: data.translation,
-            verses: data.verses.map(v => ({ verse: v.verse, text: v.text })),
-            chapterContext,
-          },
+          structuredContent: readerStructuredContent(
+            {
+              viewType: "verses",
+              reference: data.reference,
+              verses: data.verses.map(v => ({ verse: v.verse, text: v.text })),
+              chapterContext,
+            },
+            data.translation,
+            data.translation.language
+          ),
         };
       }
     }
@@ -639,7 +654,15 @@ export function createServer(fetchApi: FetchApi) {
           _meta: {
             ui: {
               csp: {
-                resourceDomains: ["https://unpkg.com"],
+                resourceDomains: [
+                  "https://unpkg.com",
+                  "https://fonts.googleapis.com",
+                  "https://fonts.gstatic.com",
+                ],
+                connectDomains: [
+                  "https://fonts.googleapis.com",
+                  "https://fonts.gstatic.com",
+                ],
               },
             },
           },

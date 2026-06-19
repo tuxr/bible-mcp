@@ -10,7 +10,7 @@ A public MCP (Model Context Protocol) server that provides Bible verse lookup an
 - 📖 **Get Verse** - Retrieve any verse, range, or chapter
 - 🔍 **Search Bible** - Full-text search with book/testament filters
 - 📚 **List Books** - Browse all 86 books including Apocrypha
-- 🌍 **Multiple Translations** - KJV and World English Bible
+- 🌍 **Multiple Translations** - WEB, KJV, WLC Hebrew, and more
 - 🎲 **Random Verse** - With optional book/testament filters
 
 ## Available Tools
@@ -28,6 +28,9 @@ A public MCP (Model Context Protocol) server that provides Bible verse lookup an
 
 - `web` - World English Bible (default)
 - `kjv` - King James Version
+- `wlc` - Westminster Leningrad Codex (Hebrew Old Testament)
+
+Use `list_translations` to see all available translations.
 
 ## Development
 
@@ -75,6 +78,7 @@ Once connected, you can ask Claude things like:
 - "Show me a random Psalm"
 - "List the books of the Apocrypha"
 - "Get Romans 8:28-39 in KJV"
+- "Read Genesis 1:1 in WLC Hebrew"
 
 ## Architecture
 

@@ -16,9 +16,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev        # Start local dev server at http://localhost:8787/mcp
 npm run deploy     # Deploy to Cloudflare Workers
 npm run inspect    # Open MCP Inspector for testing
-npm test           # Run unit + integration tests (90 tests)
+npm test           # Run unit + integration tests (115 tests)
 npm run typecheck  # Type check production + test configs
 ```
+
+For deploy/migration procedures and the cross-repo bible-api dependency, see [RUNBOOK.md](RUNBOOK.md).
 
 ## Architecture
 
@@ -48,9 +50,10 @@ The `fetchApi<T>()` function automatically detects which mode to use based on av
 | `api-client.ts` | `createFetchApi()`, error formatting (`formatToolError`, `formatApiError`), 429 retry/backoff |
 | `mcp-server.ts` | `createServer(fetchApi)` — MCP tools, prompts, and `read_bible` app resource (new instance per request) |
 | `bible-reader-html.ts` | Inline HTML for the `read_bible` MCP App UI |
+| `translation-utils.ts` | Shared translation/RTL helpers (server + reader UI injection) |
 | `test-helpers.ts` | Shared test utilities (`createTestFetchApi`, `mockResponse`, `mockRateLimitResponse`) |
 | `api-client.test.ts` | Unit tests for API client and error formatting (82 tests) |
-| `mcp-handlers.test.ts` | Integration tests for MCP tool handlers via in-memory transport (8 tests) |
+| `mcp-handlers.test.ts` | Integration tests for MCP tool handlers via in-memory transport |
 
 **Key wiring in `index.ts`:**
 - `FAVICON_SVG` - Inline SVG book icon served at `/favicon.svg`
@@ -65,7 +68,7 @@ The `fetchApi<T>()` function automatically detects which mode to use based on av
 **Bible API endpoints used:**
 - `GET /v1/verses/{reference}?translation=...` - Fetch verses
 - `GET /v1/chapters/{book}/{chapter}?translation=...` - Fetch full chapter with navigation (includes testament in prev/next)
-- `GET /v1/search?q=...&book=...&testament=...&limit=...` - Full-text search
+- `GET /v1/search?q=...&book=...&testament=...&limit=...&translation=...` - Full-text search
 - `GET /v1/books?testament=...` - List books with chapter counts
 - `GET /v1/translations` - List available translations
 - `GET /v1/random?translation=...&book=...&testament=...` - Random verse
@@ -81,7 +84,7 @@ The `fetchApi<T>()` function automatically detects which mode to use based on av
 | `search_bible` | Search for verses by keyword |
 | `get_random_verse` | Get a random verse for inspiration |
 | `list_books` | List all books with chapter counts |
-| `list_translations` | List available translations (WEB, KJV) |
+| `list_translations` | List available translations (WEB, KJV, WLC Hebrew, etc.) |
 
 **Prompts** (user-invoked templates):
 | Prompt | Description |
@@ -150,7 +153,8 @@ MCP Apps render interactive HTML interfaces directly in Claude.ai. The `read_bib
 - **Hamburger menu** - Browse all 86 books organized by testament (OT, NT, Apocrypha)
 - **Search** - Filter books by name as you type
 - **Chapter grid** - Click a book to expand chapter buttons, click to navigate
-- **Translation toggle** - Switch between WEB and KJV
+- **Translation toggle** - Dynamically loads all available translations (WEB, KJV, WLC, etc.)
+- **Hebrew/RTL support** - WLC and other Hebrew translations render right-to-left with appropriate typography
 - **Reset button** - Returns to original passage after navigating away
 - **Copy button** - Copy verses with reference to clipboard
 - **Keyboard support** - ESC key closes the menu
@@ -267,7 +271,7 @@ retryBtn.addEventListener("click", () => loadData(param));  // Safe closure
 ## Input Normalization
 
 All enum parameters use `z.preprocess` to normalize case before validation:
-- `translation`: lowercased (accepts "KJV", "kjv", "Kjv")
+- `translation`: lowercased string (accepts "KJV", "kjv", "WLC", "wlc", or any translation ID from `list_translations`)
 - `testament`: uppercased (accepts "NT", "nt", "Nt")
 
 ## Version Constraints
