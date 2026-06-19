@@ -20,6 +20,8 @@ npm test           # Run unit + integration tests (115 tests)
 npm run typecheck  # Type check production + test configs
 ```
 
+For deploy/migration procedures and the cross-repo bible-api dependency, see [RUNBOOK.md](RUNBOOK.md).
+
 ## Architecture
 
 This is a stateless MCP server hosted on Cloudflare Workers that communicates with a Bible API ([GitHub](https://github.com/tuxr/bible-api)).
