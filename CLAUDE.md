@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev        # Start local dev server at http://localhost:8787/mcp
 npm run deploy     # Deploy to Cloudflare Workers
 npm run inspect    # Open MCP Inspector for testing
-npm test           # Run unit + integration tests (96 tests)
+npm test           # Run unit + integration tests (115 tests)
 npm run typecheck  # Type check production + test configs
 ```
 
@@ -48,6 +48,7 @@ The `fetchApi<T>()` function automatically detects which mode to use based on av
 | `api-client.ts` | `createFetchApi()`, error formatting (`formatToolError`, `formatApiError`), 429 retry/backoff |
 | `mcp-server.ts` | `createServer(fetchApi)` — MCP tools, prompts, and `read_bible` app resource (new instance per request) |
 | `bible-reader-html.ts` | Inline HTML for the `read_bible` MCP App UI |
+| `translation-utils.ts` | Shared translation/RTL helpers (server + reader UI injection) |
 | `test-helpers.ts` | Shared test utilities (`createTestFetchApi`, `mockResponse`, `mockRateLimitResponse`) |
 | `api-client.test.ts` | Unit tests for API client and error formatting (82 tests) |
 | `mcp-handlers.test.ts` | Integration tests for MCP tool handlers via in-memory transport |

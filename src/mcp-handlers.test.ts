@@ -7,8 +7,10 @@ import { createServer } from "./mcp-server.ts";
 import {
   createRouteMockFetchApi,
   createTestFetchApi,
+  MOCK_KJV_VERSE_RESPONSE,
   MOCK_TRANSLATIONS,
   MOCK_WEB_VERSE_RESPONSE,
+  MOCK_WLC_CHAPTER_RESPONSE,
   MOCK_WLC_VERSE_RESPONSE,
   mockRateLimitResponse,
 } from "./test-helpers.ts";
@@ -55,13 +57,29 @@ function createBibleDataServer() {
     if (path === "/translations") {
       return MOCK_TRANSLATIONS;
     }
+    if (path.startsWith("/chapters/") && path.includes("translation=wlc")) {
+      return MOCK_WLC_CHAPTER_RESPONSE;
+    }
+    if (path.startsWith("/chapters/")) {
+      return {
+        ...MOCK_WLC_CHAPTER_RESPONSE,
+        translation: MOCK_WEB_VERSE_RESPONSE.translation,
+        verses: [{ verse: 16, text: MOCK_WEB_VERSE_RESPONSE.text }],
+      };
+    }
+    if (path.startsWith("/random") && path.includes("translation=wlc")) {
+      return MOCK_WLC_VERSE_RESPONSE;
+    }
+    if (path.startsWith("/random")) {
+      return MOCK_WEB_VERSE_RESPONSE;
+    }
     if (path.startsWith("/verses/") && path.includes("translation=wlc")) {
       return MOCK_WLC_VERSE_RESPONSE;
     }
     if (path.startsWith("/verses/") && path.includes("translation=custom")) {
       return {
         ...MOCK_WEB_VERSE_RESPONSE,
-        translation: { id: "custom", name: "Custom Translation" },
+        translation: { id: "custom", name: "Custom Translation", language: "en" },
       };
     }
     if (path.startsWith("/verses/")) {
@@ -188,6 +206,23 @@ describe("MCP translation support", () => {
     assert.match(text, /Language: he/);
   });
 
+  it("get_verse omits translation query param when translation is not provided", async () => {
+    const { fetchApi, requestedPaths } = createRouteMockFetchApi((path) => {
+      if (path.startsWith("/verses/")) {
+        return MOCK_WEB_VERSE_RESPONSE;
+      }
+      return "NOT_FOUND";
+    });
+    const result = await callMcpTool(createServer(fetchApi), "get_verse", {
+      reference: "John 3:16",
+    });
+
+    assert.equal(result.isError, undefined);
+    const versePath = requestedPaths.find((path) => path.startsWith("/verses/"));
+    assert.ok(versePath);
+    assert.doesNotMatch(versePath!, /translation=/);
+  });
+
   it("get_verse accepts translation=wlc and returns Hebrew text", async () => {
     const { fetchApi, requestedPaths } = createRouteMockFetchApi((path) => {
       if (path.startsWith("/verses/")) {
@@ -209,18 +244,65 @@ describe("MCP translation support", () => {
     assert.ok(requestedPaths.some((path) => path.includes("translation=wlc")));
   });
 
-  it("normalizes translation parameter to lowercase", async () => {
+  it("get_chapter forwards translation=wlc and returns Hebrew chapter text", async () => {
     const { fetchApi, requestedPaths } = createRouteMockFetchApi((path) => {
-      if (path.startsWith("/verses/")) {
-        return MOCK_WEB_VERSE_RESPONSE;
+      if (path.startsWith("/chapters/")) {
+        return MOCK_WLC_CHAPTER_RESPONSE;
       }
       return "NOT_FOUND";
     });
-    await callMcpTool(createServer(fetchApi), "get_verse", {
+    const result = await callMcpTool(createServer(fetchApi), "get_chapter", {
+      book: "Genesis",
+      chapter: 1,
+      translation: "wlc",
+    });
+
+    assert.equal(result.isError, undefined);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const text = content[0].text;
+    assert.match(text, /Genesis 1/);
+    assert.match(text, /Westminster Leningrad Codex/);
+    assert.match(text, /בְּרֵאשִׁית/);
+    assert.ok(requestedPaths.some((path) => path.includes("translation=wlc")));
+    assert.ok(requestedPaths.some((path) => path.startsWith("/chapters/")));
+  });
+
+  it("get_random_verse forwards translation=wlc and returns Hebrew text", async () => {
+    const { fetchApi, requestedPaths } = createRouteMockFetchApi((path) => {
+      if (path.startsWith("/random")) {
+        return MOCK_WLC_VERSE_RESPONSE;
+      }
+      return "NOT_FOUND";
+    });
+    const result = await callMcpTool(createServer(fetchApi), "get_random_verse", {
+      translation: "wlc",
+    });
+
+    assert.equal(result.isError, undefined);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const text = content[0].text;
+    assert.match(text, /Genesis 1:1/);
+    assert.match(text, /בְּרֵאשִׁית/);
+    assert.ok(requestedPaths.some((path) => path.includes("translation=wlc")));
+    assert.ok(requestedPaths.some((path) => path.startsWith("/random")));
+  });
+
+  it("normalizes translation parameter to lowercase", async () => {
+    const { fetchApi, requestedPaths } = createRouteMockFetchApi((path) => {
+      if (path.startsWith("/verses/")) {
+        return MOCK_KJV_VERSE_RESPONSE;
+      }
+      return "NOT_FOUND";
+    });
+    const result = await callMcpTool(createServer(fetchApi), "get_verse", {
       reference: "John 3:16",
       translation: "KJV",
     });
 
+    assert.equal(result.isError, undefined);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const text = content[0].text;
+    assert.match(text, /King James Version/);
     assert.ok(requestedPaths.some((path) => path.includes("translation=kjv")));
   });
 
@@ -229,7 +311,7 @@ describe("MCP translation support", () => {
       if (path.startsWith("/verses/")) {
         return {
           ...MOCK_WEB_VERSE_RESPONSE,
-          translation: { id: "custom", name: "Custom Translation" },
+          translation: { id: "custom", name: "Custom Translation", language: "en" },
         };
       }
       return "NOT_FOUND";
@@ -246,7 +328,7 @@ describe("MCP translation support", () => {
     assert.ok(requestedPaths.some((path) => path.includes("translation=custom")));
   });
 
-  it("search_bible forwards translation parameter to the API", async () => {
+  it("search_bible forwards translation parameter and returns Hebrew text", async () => {
     const { fetchApi, requestedPaths } = createRouteMockFetchApi((path) => {
       if (path.startsWith("/search?")) {
         return {
@@ -272,10 +354,11 @@ describe("MCP translation support", () => {
     const content = result.content as Array<{ type: string; text: string }>;
     const text = content[0].text;
     assert.match(text, /Genesis 1:1/);
+    assert.match(text, /בְּרֵאשִׁית/);
     assert.ok(requestedPaths.some((path) => path.includes("translation=wlc")));
   });
 
-  it("read_bible includes RTL direction metadata for WLC", async () => {
+  it("read_bible includes RTL direction metadata for WLC verse view", async () => {
     const result = await callMcpTool(createBibleDataServer(), "read_bible", {
       reference: "Genesis 1:1",
       translation: "wlc",
@@ -283,14 +366,62 @@ describe("MCP translation support", () => {
 
     assert.equal(result.isError, undefined);
     const structured = result.structuredContent as {
+      viewType?: string;
       direction?: string;
       language?: string;
       translation?: { id: string };
       verses?: Array<{ text: string }>;
     };
+    assert.equal(structured.viewType, "verses");
     assert.equal(structured.direction, "rtl");
     assert.equal(structured.language, "he");
     assert.equal(structured.translation?.id, "wlc");
     assert.match(structured.verses?.[0]?.text ?? "", /בְּרֵאשִׁית/);
+  });
+
+  it("read_bible includes RTL direction metadata for WLC chapter view", async () => {
+    const { fetchApi, requestedPaths } = createRouteMockFetchApi((path) => {
+      if (path.startsWith("/chapters/")) {
+        return MOCK_WLC_CHAPTER_RESPONSE;
+      }
+      return "NOT_FOUND";
+    });
+    const result = await callMcpTool(createServer(fetchApi), "read_bible", {
+      reference: "Genesis 1",
+      translation: "wlc",
+    });
+
+    assert.equal(result.isError, undefined);
+    const structured = result.structuredContent as {
+      viewType?: string;
+      direction?: string;
+      language?: string;
+      translation?: { id: string };
+      verses?: Array<{ text: string }>;
+    };
+    assert.equal(structured.viewType, "chapter");
+    assert.equal(structured.direction, "rtl");
+    assert.equal(structured.language, "he");
+    assert.equal(structured.translation?.id, "wlc");
+    assert.match(structured.verses?.[0]?.text ?? "", /בְּרֵאשִׁית/);
+    assert.ok(requestedPaths.some((path) => path.startsWith("/chapters/")));
+    assert.ok(requestedPaths.some((path) => path.includes("translation=wlc")));
+  });
+
+  it("read_bible returns ltr direction for WEB translation", async () => {
+    const result = await callMcpTool(createBibleDataServer(), "read_bible", {
+      reference: "John 3:16",
+      translation: "web",
+    });
+
+    assert.equal(result.isError, undefined);
+    const structured = result.structuredContent as {
+      direction?: string;
+      language?: string;
+      translation?: { id: string };
+    };
+    assert.equal(structured.direction, "ltr");
+    assert.equal(structured.language, "en");
+    assert.equal(structured.translation?.id, "web");
   });
 });

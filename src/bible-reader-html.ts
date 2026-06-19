@@ -1,9 +1,14 @@
+import { BIBLE_READER_INLINE_UTILS } from "./translation-utils.ts";
+
 export const BIBLE_READER_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="dark light">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;700&display=swap" rel="stylesheet">
   <title>Bible Reader</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -478,13 +483,7 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
       return div.innerHTML;
     }
 
-    function isRtlContent(data) {
-      if (!data) return false;
-      if (data.direction === "rtl") return true;
-      const lang = (data.language || data.translation?.language || "").toLowerCase();
-      const id = (data.translation?.id || currentTranslation || "").toLowerCase();
-      return id === "wlc" || lang === "he" || lang === "heb" || lang.startsWith("he-");
-    }
+    ${BIBLE_READER_INLINE_UTILS}
 
     function translationButtonLabel(translation) {
       return (translation.shortName || translation.id || "").toUpperCase();
@@ -494,16 +493,26 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
       const toggleDiv = document.createElement("div");
       toggleDiv.className = "translation-toggle";
 
-      if (translationsLoading && !translationsCache) {
+      if (translationsLoading && !(translationsCache?.length > 0)) {
         toggleDiv.classList.add("loading");
         toggleDiv.textContent = "Loading translations...";
         return toggleDiv;
       }
 
-      if (translationsError && !translationsCache) {
+      if (translationsError && !(translationsCache?.length > 0)) {
         toggleDiv.classList.add("error");
         toggleDiv.textContent = "Translations unavailable";
         toggleDiv.title = translationsError;
+        const retryBtn = document.createElement("button");
+        retryBtn.className = "translation-btn";
+        retryBtn.textContent = "Retry";
+        retryBtn.addEventListener("click", () => {
+          translationsCache = null;
+          translationsError = null;
+          loadTranslations();
+        });
+        toggleDiv.appendChild(document.createTextNode(" "));
+        toggleDiv.appendChild(retryBtn);
         return toggleDiv;
       }
 
@@ -537,7 +546,7 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
       }
 
       contentEl.className = "";
-      const { reference, translation, verses, viewType, navigation, chapterContext } = currentData;
+      const { reference, verses, viewType, navigation, chapterContext } = currentData;
 
       // Build header with menu button
       const header = document.createElement("div");
@@ -558,7 +567,7 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
 
       header.appendChild(buildTranslationToggle());
 
-      const rtl = isRtlContent(currentData);
+      const rtl = isRtlContent(currentData, currentTranslation);
       const versesDiv = document.createElement("div");
       versesDiv.className = "verses" + (rtl ? " rtl" : "");
       versesDiv.setAttribute("dir", rtl ? "rtl" : "ltr");
@@ -708,26 +717,8 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
       }, 1500);
     }
 
-    function parseTranslationsList(text) {
-      const translations = [];
-      const lines = text.split("\\n");
-
-      for (const line of lines) {
-        const match = line.match(/^•\\s+([A-Za-z0-9_-]+)\\s+-\\s+(.+)$/);
-        if (match) {
-          translations.push({
-            id: match[1].toLowerCase(),
-            name: match[2].trim(),
-            shortName: match[1],
-          });
-        }
-      }
-
-      return translations;
-    }
-
     async function loadTranslations() {
-      if (translationsCache || translationsLoading) return;
+      if ((translationsCache?.length > 0) || translationsLoading) return;
       translationsLoading = true;
       translationsError = null;
 
@@ -739,11 +730,15 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
           });
         });
         const text = result.content?.[0]?.text || "";
-        translationsCache = parseTranslationsList(text);
-        if (!translationsCache.length) {
+        const parsed = parseTranslationsList(text);
+        if (!parsed.length) {
+          translationsCache = null;
           translationsError = "No translations returned";
+        } else {
+          translationsCache = parsed;
         }
       } catch (err) {
+        translationsCache = null;
         translationsError = err?.message || "Failed to load translations";
       } finally {
         translationsLoading = false;

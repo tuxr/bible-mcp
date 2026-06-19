@@ -85,7 +85,7 @@ export const MOCK_TRANSLATIONS = [
 
 export const MOCK_WLC_VERSE_RESPONSE = {
   reference: "Genesis 1:1",
-  translation: { id: "wlc", name: "Westminster Leningrad Codex" },
+  translation: { id: "wlc", name: "Westminster Leningrad Codex", language: "he" },
   verses: [
     {
       book: "GEN",
@@ -100,7 +100,7 @@ export const MOCK_WLC_VERSE_RESPONSE = {
 
 export const MOCK_WEB_VERSE_RESPONSE = {
   reference: "John 3:16",
-  translation: { id: "web", name: "World English Bible" },
+  translation: { id: "web", name: "World English Bible", language: "en" },
   verses: [
     {
       book: "JHN",
@@ -111,6 +111,23 @@ export const MOCK_WEB_VERSE_RESPONSE = {
     },
   ],
   text: "For God so loved the world, that he gave his one and only Son, that whoever believes in him should not perish, but have eternal life.",
+};
+
+export const MOCK_KJV_VERSE_RESPONSE = {
+  ...MOCK_WEB_VERSE_RESPONSE,
+  translation: { id: "kjv", name: "King James Version", language: "en" },
+};
+
+export const MOCK_WLC_CHAPTER_RESPONSE = {
+  book: { id: "GEN", name: "Genesis", testament: "OT" as const },
+  chapter: 1,
+  translation: { id: "wlc", name: "Westminster Leningrad Codex", language: "he" },
+  verses: [{ verse: 1, text: MOCK_WLC_VERSE_RESPONSE.text }],
+  verse_count: 1,
+  navigation: {
+    previous: null,
+    next: { book: "Genesis", chapter: 2, testament: "OT" as const },
+  },
 };
 
 /** Route-aware mock fetch for integration tests (paths are /verses/..., /translations, etc.). */

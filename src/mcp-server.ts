@@ -12,6 +12,7 @@ import {
   type FetchApi,
 } from "./api-client.ts";
 import { BIBLE_READER_HTML } from "./bible-reader-html.ts";
+import { readerStructuredContent } from "./translation-utils.ts";
 
 // =============================================================================
 // Types
@@ -20,6 +21,7 @@ import { BIBLE_READER_HTML } from "./bible-reader-html.ts";
 interface Translation {
   id: string;
   name: string;
+  language?: string;
 }
 
 interface Verse {
@@ -80,26 +82,6 @@ const translationSchema = z.preprocess(
   (val) => (typeof val === "string" ? val.toLowerCase() : val),
   z.string().optional()
 ).describe(TRANSLATION_DESCRIPTION);
-
-function isRtlTranslation(translation: Translation, language?: string): boolean {
-  const id = translation.id.toLowerCase();
-  const lang = (language ?? "").toLowerCase();
-  return id === "wlc" || lang === "he" || lang === "heb" || lang.startsWith("he-");
-}
-
-function readerStructuredContent(
-  base: Record<string, unknown>,
-  translation: Translation,
-  language?: string
-) {
-  const rtl = isRtlTranslation(translation, language);
-  return {
-    ...base,
-    translation,
-    direction: rtl ? "rtl" : "ltr",
-    language: language ?? (rtl ? "he" : "en"),
-  };
-}
 
 // =============================================================================
 // MCP Server Factory (new instance per request to avoid cross-client data leaks)
@@ -557,7 +539,15 @@ export function createServer(fetchApi: FetchApi) {
         ui: {
           resourceUri: BIBLE_READER_RESOURCE_URI,
           csp: {
-            resourceDomains: ["https://unpkg.com"],
+            resourceDomains: [
+              "https://unpkg.com",
+              "https://fonts.googleapis.com",
+              "https://fonts.gstatic.com",
+            ],
+            connectDomains: [
+              "https://fonts.googleapis.com",
+              "https://fonts.gstatic.com",
+            ],
           },
         },
       },
@@ -603,7 +593,8 @@ export function createServer(fetchApi: FetchApi) {
               verses: data.verses,
               navigation: data.navigation,
             },
-            data.translation
+            data.translation,
+            data.translation.language
           ),
         };
       } else {
@@ -641,7 +632,8 @@ export function createServer(fetchApi: FetchApi) {
               verses: data.verses.map(v => ({ verse: v.verse, text: v.text })),
               chapterContext,
             },
-            data.translation
+            data.translation,
+            data.translation.language
           ),
         };
       }
@@ -662,7 +654,15 @@ export function createServer(fetchApi: FetchApi) {
           _meta: {
             ui: {
               csp: {
-                resourceDomains: ["https://unpkg.com"],
+                resourceDomains: [
+                  "https://unpkg.com",
+                  "https://fonts.googleapis.com",
+                  "https://fonts.gstatic.com",
+                ],
+                connectDomains: [
+                  "https://fonts.googleapis.com",
+                  "https://fonts.gstatic.com",
+                ],
               },
             },
           },
