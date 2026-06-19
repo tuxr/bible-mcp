@@ -18,45 +18,8 @@ import {
   isApiError,
   isRateLimitError,
   parseRetryAfter,
-  type BibleApiEnv,
-  type FetchApiOptions,
 } from "./api-client.ts";
-
-/** Disable automatic 429 retries unless a test opts in explicitly. */
-function createTestFetchApi(
-  fetchImpl: () => Promise<Response>,
-  options: FetchApiOptions = {},
-  env: BibleApiEnv = {}
-) {
-  return createFetchApi(env, fetchImpl, {
-    maxRateLimitRetries: 0,
-    sleep: async () => {},
-    ...options,
-  });
-}
-
-function mockResponse(options: {
-  ok: boolean;
-  status: number;
-  statusText: string;
-  body: string;
-  textThrows?: boolean;
-  headers?: Record<string, string>;
-}): Response {
-  const headers = new Headers(options.headers);
-  return {
-    ok: options.ok,
-    status: options.status,
-    statusText: options.statusText,
-    headers,
-    text: async () => {
-      if (options.textThrows) {
-        throw new Error("read failed");
-      }
-      return options.body;
-    },
-  } as Response;
-}
+import { createTestFetchApi, mockResponse } from "./test-helpers.ts";
 
 describe("isApiError", () => {
   it("returns true for objects with a string error field", () => {

@@ -5,7 +5,13 @@
 - MCP-2 completed and committed:
   - Resilient 429 retry logic + backoff in `fetchApi`
   - `createTestFetchApi` helper for deterministic tests
-  - All 237 tests passing + clean typecheck
+  - 82 api-client unit tests passing + clean typecheck
+- MCP-3 completed:
+  - Extracted MCP server factory to `src/mcp-server.ts`
+  - Extracted Bible reader HTML to `src/bible-reader-html.ts`
+  - Shared test utilities in `src/test-helpers.ts`
+  - Handler-level integration tests in `src/mcp-handlers.test.ts` (8 tests)
+  - All **90 tests** passing (82 unit + 8 integration) + clean typecheck
 - Wrangler authenticated and working
 
 ## MCP-3 Goal
@@ -18,9 +24,10 @@ Add **handler-level integration tests** with mocked `fetchApi` per tool.
 ## Testing Workflow
 1. Complete MCP-3 changes
 2. Run full test suite:
-   - `npm test`
-   - `npm run typecheck`
-3. Verify 237+ tests still pass
+   - `npm test` — 90 tests (82 api-client unit + 8 MCP handler integration)
+   - `npm run typecheck` — production + test TypeScript configs
+   - `npm run typecheck:test` — test config only (optional)
+3. Verify all 90 tests still pass
 
 ## Deployment Workflow
 1. All changes must be on a feature branch (never direct to `main`)

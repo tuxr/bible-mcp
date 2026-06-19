@@ -363,6 +363,8 @@ export function friendlyHttpStatusMessage(status: number): string {
   }
 }
 
+export type FetchApi = <T>(path: string) => Promise<T | ApiError>;
+
 export function createFetchApi(
   env: BibleApiEnv,
   fetchImpl: typeof fetch = fetch,

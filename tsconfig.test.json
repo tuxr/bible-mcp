@@ -4,6 +4,6 @@
     "types": ["@cloudflare/workers-types", "node"],
     "allowImportingTsExtensions": true
   },
-  "include": ["src/**/*.test.ts"],
+  "include": ["src/**/*.test.ts", "src/test-helpers.ts", "src/mcp-server.ts", "src/bible-reader-html.ts", "src/api-client.ts"],
   "exclude": ["node_modules"]
 }
