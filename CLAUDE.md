@@ -13,10 +13,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev      # Start local dev server at http://localhost:8787/mcp
-npm run deploy   # Deploy to Cloudflare Workers
-npm run inspect  # Open MCP Inspector for testing
-npx tsc --noEmit # Type check without emitting
+npm run dev        # Start local dev server at http://localhost:8787/mcp
+npm run deploy     # Deploy to Cloudflare Workers
+npm run inspect    # Open MCP Inspector for testing
+npm test           # Run unit + integration tests (90 tests)
+npm run typecheck  # Type check production + test configs
 ```
 
 ## Architecture
@@ -39,13 +40,25 @@ The `fetchApi<T>()` function automatically detects which mode to use based on av
 - `/favicon.svg`, `/favicon.ico` - Book icon favicon
 - `/api`, `/connect` - Redirect to `/mcp`
 
-**Key components in `src/index.ts`:**
+**Source layout (`src/`):**
+
+| Module | Role |
+|--------|------|
+| `index.ts` | Worker entry: routes (`/`, `/mcp`, favicon), `SERVER_INFO`, wires `createFetchApi` → `createServer` |
+| `api-client.ts` | `createFetchApi()`, error formatting (`formatToolError`, `formatApiError`), 429 retry/backoff |
+| `mcp-server.ts` | `createServer(fetchApi)` — MCP tools, prompts, and `read_bible` app resource (new instance per request) |
+| `bible-reader-html.ts` | Inline HTML for the `read_bible` MCP App UI |
+| `test-helpers.ts` | Shared test utilities (`createTestFetchApi`, `mockResponse`, `mockRateLimitResponse`) |
+| `api-client.test.ts` | Unit tests for API client and error formatting (82 tests) |
+| `mcp-handlers.test.ts` | Integration tests for MCP tool handlers via in-memory transport (8 tests) |
+
+**Key wiring in `index.ts`:**
 - `FAVICON_SVG` - Inline SVG book icon served at `/favicon.svg`
 - `SERVER_INFO` - JSON object returned at root with server metadata
 - `env.BIBLE_API` - Service binding (optional, for same-account deployments)
 - `env.BIBLE_API_URL` - Public API URL (optional, defaults to hosted API)
-- `fetchApi<T>()` - Calls API via service binding or public HTTPS
-- `createServer()` - Factory that creates a new `McpServer` with all tools/prompts per request (required by SDK 1.26.0+ to prevent cross-client data leaks)
+- `createFetchApi(env)` - Builds the API client (service binding or public HTTPS)
+- `createServer(fetchApi)` - Factory in `mcp-server.ts`; new `McpServer` per request (SDK 1.26.0+)
 - Tools registered via `server.tool(name, description, zodSchema, handler)` inside `createServer()`
 - Prompts registered via `server.registerPrompt(name, options, handler)` inside `createServer()`
 

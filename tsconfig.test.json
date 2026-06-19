@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["@cloudflare/workers-types", "node"],
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src/**/*.test.ts", "src/test-helpers.ts", "src/mcp-server.ts", "src/bible-reader-html.ts", "src/api-client.ts"],
+  "exclude": ["node_modules"]
+}
