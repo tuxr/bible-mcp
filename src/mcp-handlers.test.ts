@@ -435,6 +435,57 @@ describe("MCP translation support", () => {
     assert.ok(requestedPaths.some((path) => path.includes("translation=wlc")));
   });
 
+  it("search_bible forwards offset and accepts a limit of 100", async () => {
+    const { fetchApi, requestedPaths } = createRouteMockFetchApi((path) => {
+      if (path.startsWith("/search?")) {
+        return {
+          query: "love",
+          translation: "web",
+          total: 125,
+          results: [
+            {
+              reference: "John 3:16",
+              book: "JHN",
+              book_name: "John",
+              chapter: 3,
+              verse: 16,
+              text: MOCK_WEB_VERSE_RESPONSE.text,
+            },
+          ],
+        };
+      }
+      return "NOT_FOUND";
+    });
+    const result = await callMcpTool(createServer(fetchApi), "search_bible", {
+      query: "love",
+      limit: 100,
+      offset: 100,
+    });
+
+    assert.equal(result.isError, undefined);
+    assert.ok(requestedPaths.some((path) =>
+      path.includes("limit=100") && path.includes("offset=100")
+    ));
+  });
+
+  it("search_bible reports the total for an empty high-offset page", async () => {
+    const { fetchApi } = createRouteMockFetchApi((path) => {
+      if (path.startsWith("/search?")) {
+        return { query: "love", translation: "web", total: 125, results: [] };
+      }
+      return "NOT_FOUND";
+    });
+    const result = await callMcpTool(createServer(fetchApi), "search_bible", {
+      query: "love",
+      offset: 200,
+    });
+
+    assert.equal(result.isError, undefined);
+    const content = result.content as Array<{ type: string; text: string }>;
+    assert.match(content[0].text, /Found: 125 results \(showing 0\)/);
+    assert.doesNotMatch(content[0].text, /No results found/);
+  });
+
   it("read_bible includes RTL direction metadata for WLC verse view", async () => {
     const result = await callMcpTool(createBibleDataServer(), "read_bible", {
       reference: "Genesis 1:1",

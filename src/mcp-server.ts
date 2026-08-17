@@ -215,16 +215,22 @@ export function createServer(fetchApi: FetchApi) {
       ).describe("Filter by testament: OT (Old), NT (New), AP (Apocrypha)"),
       limit: z.number()
         .min(1)
-        .max(50)
+        .max(100)
         .optional()
-        .describe("Max results to return (default: 20, max: 50)"),
+        .describe("Max results to return (default: 20, max: 100)"),
+      offset: z.number()
+        .int()
+        .min(0)
+        .optional()
+        .describe("Number of matching results to skip for pagination (default: 0)"),
       translation: translationSchema,
     },
-    async ({ query, book, testament, limit, translation }) => {
+    async ({ query, book, testament, limit, offset, translation }) => {
       const params = new URLSearchParams({ q: query });
       if (book) params.set("book", book);
       if (testament) params.set("testament", testament);
       if (limit) params.set("limit", String(limit));
+      if (offset !== undefined) params.set("offset", String(offset));
       if (translation) params.set("translation", translation);
   
       const data = await fetchApi<SearchResponse>(`/search?${params.toString()}`);
@@ -233,7 +239,7 @@ export function createServer(fetchApi: FetchApi) {
         return formatToolError(data, { query });
       }
   
-      if (data.results.length === 0) {
+      if (data.total === 0) {
         return {
           content: [{ type: "text", text: `No results found for "${query}"` }],
         };
