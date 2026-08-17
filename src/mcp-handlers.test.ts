@@ -456,6 +456,33 @@ describe("MCP translation support", () => {
     assert.match(structured.verses?.[0]?.text ?? "", /בְּרֵאשִׁית/);
   });
 
+  it("read_bible uses the API Hebrew language for an arbitrary translation ID", async () => {
+    const { fetchApi } = createRouteMockFetchApi((path) => {
+      if (path.startsWith("/verses/")) {
+        return {
+          ...MOCK_WLC_VERSE_RESPONSE,
+          translation: { id: "custom-hebrew", name: "Custom Hebrew", language: "he" },
+        };
+      }
+      return "NOT_FOUND";
+    });
+    const result = await callMcpTool(createServer(fetchApi), "read_bible", {
+      reference: "Genesis 1:1",
+      translation: "custom-hebrew",
+    });
+
+    assert.equal(result.isError, undefined);
+    const structured = result.structuredContent as {
+      direction?: string;
+      language?: string;
+      translation?: { id: string; language?: string };
+    };
+    assert.equal(structured.direction, "rtl");
+    assert.equal(structured.language, "he");
+    assert.equal(structured.translation?.id, "custom-hebrew");
+    assert.equal(structured.translation?.language, "he");
+  });
+
   it("read_bible includes RTL direction metadata for WLC chapter view", async () => {
     const { fetchApi, requestedPaths } = createRouteMockFetchApi((path) => {
       if (path.startsWith("/chapters/")) {

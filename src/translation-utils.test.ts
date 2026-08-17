@@ -117,10 +117,28 @@ describe("parseTranslationsList", () => {
 });
 
 describe("readerStructuredContent", () => {
+  it("uses the API translation language to mark arbitrary Hebrew translations RTL", () => {
+    const result = readerStructuredContent(
+      { viewType: "verses" },
+      { id: "custom-hebrew", name: "Custom Hebrew", language: "he" }
+    );
+    assert.equal(result.direction, "rtl");
+    assert.equal(result.language, "he");
+  });
+
   it("includes rtl direction and Hebrew language for WLC", () => {
     const result = readerStructuredContent(
       { viewType: "verses" },
       { id: "wlc", name: "WLC", language: "he" }
+    );
+    assert.equal(result.direction, "rtl");
+    assert.equal(result.language, "he");
+  });
+
+  it("falls back to the WLC ID when language metadata is absent", () => {
+    const result = readerStructuredContent(
+      { viewType: "verses" },
+      { id: "wlc", name: "WLC" }
     );
     assert.equal(result.direction, "rtl");
     assert.equal(result.language, "he");
