@@ -20,6 +20,32 @@ export interface ReaderContentLike {
   translation?: TranslationLike;
 }
 
+export interface ReaderVerse {
+  verse: number;
+  text: string;
+}
+
+export interface ReaderContentWithVerses extends ReaderContentLike {
+  verses: ReaderVerse[];
+}
+
+/** Ensure a reader tool response contains a renderable verses array. */
+export function hasReaderVerses(data: unknown): data is ReaderContentWithVerses {
+  const verses = (
+    typeof data === "object" &&
+    data !== null &&
+    !Array.isArray(data) &&
+    (data as { verses?: unknown }).verses
+  );
+  return Array.isArray(verses) && verses.every(
+    (verse) =>
+      typeof verse === "object" &&
+      verse !== null &&
+      typeof (verse as { verse?: unknown }).verse === "number" &&
+      typeof (verse as { text?: unknown }).text === "string"
+  );
+}
+
 /** Detect RTL from translation ID or BCP-47 language code. */
 export function isRtlTranslation(
   translation: TranslationLike,
@@ -87,6 +113,12 @@ export function readerStructuredContent(
  * Keep in sync with exported functions above — parity covered in translation-utils.test.ts.
  */
 export const BIBLE_READER_INLINE_UTILS = `
+    function hasReaderVerses(data) {
+      return data && typeof data === "object" && !Array.isArray(data) && Array.isArray(data.verses)
+        && data.verses.every(verse => verse && typeof verse === "object"
+          && typeof verse.verse === "number" && typeof verse.text === "string");
+    }
+
     function isRtlContent(data, currentTranslation) {
       if (!data) return false;
       if (data.direction === "rtl") return true;
