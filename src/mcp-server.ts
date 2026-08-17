@@ -593,8 +593,7 @@ export function createServer(fetchApi: FetchApi) {
               verses: data.verses,
               navigation: data.navigation,
             },
-            data.translation,
-            data.translation.language
+            data.translation
           ),
         };
       } else {
@@ -632,8 +631,7 @@ export function createServer(fetchApi: FetchApi) {
               verses: data.verses.map(v => ({ verse: v.verse, text: v.text })),
               chapterContext,
             },
-            data.translation,
-            data.translation.language
+            data.translation
           ),
         };
       }
