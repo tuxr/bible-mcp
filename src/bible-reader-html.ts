@@ -330,6 +330,18 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
       border-color: var(--accent);
     }
 
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     .book-list {
       flex: 1;
       overflow-y: auto;
@@ -341,9 +353,13 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
     }
 
     .testament-header {
+      width: 100%;
       padding: 0.75rem 1.25rem;
+      border: 0;
+      background: transparent;
       font-size: 0.75rem;
       font-weight: 600;
+      text-align: left;
       text-transform: uppercase;
       color: var(--text-muted);
       cursor: pointer;
@@ -374,7 +390,12 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
     }
 
     .book-row {
+      width: 100%;
       padding: 0.5rem 1.25rem;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -449,6 +470,7 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
         </button>
       </div>
       <div class="search-box">
+        <label class="visually-hidden" for="bookSearch">Search books</label>
         <input type="text" class="search-input" id="bookSearch" placeholder="Search books...">
       </div>
       <div class="book-list" id="bookList">
@@ -541,6 +563,12 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
 
       if (currentData.error) {
         contentEl.textContent = currentData.error;
+        contentEl.className = "error";
+        return;
+      }
+
+      if (!hasReaderVerses(currentData)) {
+        contentEl.textContent = "No verses were returned for this passage.";
         contentEl.className = "error";
         return;
       }
@@ -835,21 +863,21 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
         hasResults = true;
 
         html += '<div class="testament-section">';
-        html += '<div class="testament-header" data-testament="' + t.key + '">';
+        html += '<button type="button" class="testament-header" data-testament="' + t.key + '" aria-expanded="true" aria-controls="testament-books-' + t.key + '">';
         html += '<span class="arrow">▼</span> ' + t.icon + ' ' + t.label + ' (' + filtered.length + ')';
-        html += '</div>';
-        html += '<div class="testament-books" data-testament-books="' + t.key + '">';
+        html += '</button>';
+        html += '<div class="testament-books" id="testament-books-' + t.key + '" data-testament-books="' + t.key + '">';
 
         for (const book of filtered) {
           const isExpanded = expandedBook === book.id;
           // Escape API data to prevent XSS if backend is compromised
           const safeId = escapeHtml(book.id);
           const safeName = escapeHtml(book.name);
-          html += '<div class="book-row' + (isExpanded ? ' expanded' : '') + '" data-book="' + safeId + '" data-name="' + safeName + '" data-chapters="' + book.chapters + '">';
+          html += '<button type="button" class="book-row' + (isExpanded ? ' expanded' : '') + '" data-book="' + safeId + '" data-name="' + safeName + '" data-chapters="' + book.chapters + '" aria-label="Show chapters for ' + safeName + '" aria-expanded="' + isExpanded + '" aria-controls="book-chapters-' + safeId + '">';
           html += '<span class="book-name">' + safeName + '</span>';
           html += '<span class="book-chapters-count">' + book.chapters + ' ch</span>';
-          html += '</div>';
-          html += '<div class="chapter-grid' + (isExpanded ? ' expanded' : '') + '" data-book-chapters="' + safeId + '">';
+          html += '</button>';
+          html += '<div class="chapter-grid' + (isExpanded ? ' expanded' : '') + '" id="book-chapters-' + safeId + '" data-book-chapters="' + safeId + '">';
           for (let i = 1; i <= book.chapters; i++) {
             html += '<button class="chapter-btn" data-book-name="' + safeName + '" data-chapter="' + i + '">' + i + '</button>';
           }
@@ -878,6 +906,7 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
           const booksEl = bookListEl.querySelector('[data-testament-books="' + testament + '"]');
           el.classList.toggle("collapsed");
           booksEl.classList.toggle("collapsed");
+          el.setAttribute("aria-expanded", String(!el.classList.contains("collapsed")));
         });
       });
 
@@ -888,16 +917,20 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
 
           // Collapse previous
           if (expandedBook) {
-            bookListEl.querySelector('.book-row[data-book="' + expandedBook + '"]')?.classList.remove("expanded");
+            const expandedBookEl = bookListEl.querySelector('.book-row[data-book="' + expandedBook + '"]');
+            expandedBookEl?.classList.remove("expanded");
+            expandedBookEl?.setAttribute("aria-expanded", "false");
             bookListEl.querySelector('[data-book-chapters="' + expandedBook + '"]')?.classList.remove("expanded");
           }
 
           // Expand new (if different)
           if (!wasExpanded) {
             el.classList.add("expanded");
+            el.setAttribute("aria-expanded", "true");
             bookListEl.querySelector('[data-book-chapters="' + bookId + '"]')?.classList.add("expanded");
             expandedBook = bookId;
           } else {
+            el.setAttribute("aria-expanded", "false");
             expandedBook = null;
           }
         });
