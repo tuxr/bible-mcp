@@ -20,6 +20,7 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
       --text: #e6edf3;
       --text-muted: #8b949e;
       --accent: #58a6ff;
+      --jesus: #ff7b72;
       --border: #30363d;
     }
 
@@ -37,6 +38,7 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
       --text: #1f2328;
       --text-muted: #656d76;
       --accent: #0969da;
+      --jesus: #cf222e;
       --border: #d0d7de;
     }
 
@@ -148,6 +150,11 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
       vertical-align: super;
       margin-right: 0.25rem;
       unicode-bidi: isolate;
+    }
+
+    .speaker-jesus {
+      color: var(--jesus);
+      font-weight: 600;
     }
 
     .verses.rtl .verse-num {
@@ -606,7 +613,22 @@ export const BIBLE_READER_HTML = `<!DOCTYPE html>
         num.className = "verse-num";
         num.textContent = v.verse;
         verseSpan.appendChild(num);
-        verseSpan.appendChild(document.createTextNode(v.text + " "));
+        if (Array.isArray(v.segments)) {
+          v.segments.forEach(segment => {
+            if (segment.speaker === "jesus") {
+              const segmentSpan = document.createElement("span");
+              segmentSpan.className = "speaker-jesus";
+              segmentSpan.dataset.speaker = "jesus";
+              segmentSpan.textContent = segment.text;
+              verseSpan.appendChild(segmentSpan);
+            } else {
+              verseSpan.appendChild(document.createTextNode(segment.text));
+            }
+          });
+          verseSpan.appendChild(document.createTextNode(" "));
+        } else {
+          verseSpan.appendChild(document.createTextNode(v.text + " "));
+        }
         versesDiv.appendChild(verseSpan);
       });
 

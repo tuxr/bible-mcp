@@ -30,6 +30,7 @@ interface Verse {
   chapter: number;
   verse: number;
   text: string;
+  segments?: Array<{ text: string; speaker: "jesus" | "narrator" }>;
   reference?: string;
 }
 
@@ -67,7 +68,7 @@ interface ChapterResponse {
   book: { id: string; name: string; testament: "OT" | "NT" | "AP" };
   chapter: number;
   translation: Translation;
-  verses: Array<{ verse: number; text: string }>;
+  verses: Array<Pick<Verse, "verse" | "text" | "segments">>;
   verse_count: number;
   navigation: {
     previous: { book: string; chapter: number; testament: "OT" | "NT" | "AP" } | null;
@@ -562,6 +563,7 @@ export function createServer(fetchApi: FetchApi) {
       const { reference, translation = "web" } = args;
       const params = new URLSearchParams();
       params.set("translation", translation.toLowerCase());
+      params.set("segments", "1");
   
       const chapterInfo = isChapterReference(reference);
   
@@ -634,7 +636,11 @@ export function createServer(fetchApi: FetchApi) {
             {
               viewType: "verses",
               reference: data.reference,
-              verses: data.verses.map(v => ({ verse: v.verse, text: v.text })),
+              verses: data.verses.map((verse) => ({
+                verse: verse.verse,
+                text: verse.text,
+                segments: verse.segments,
+              })),
               chapterContext,
             },
             data.translation

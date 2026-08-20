@@ -58,4 +58,13 @@ describe("Bible reader accessibility markup", () => {
     assert.match(BIBLE_READER_HTML, /if \(!hasReaderVerses\(currentData\)\)/);
     assert.match(BIBLE_READER_HTML, /No verses were returned for this passage\./);
   });
+
+  it("renders API-provided Jesus segments with a non-color speaker cue", () => {
+    assert.match(BIBLE_READER_HTML, /if \(Array\.isArray\(v\.segments\)\)/);
+    assert.match(BIBLE_READER_HTML, /segment\.speaker === "jesus"/);
+    assert.match(BIBLE_READER_HTML, /segmentSpan\.dataset\.speaker = "jesus"/);
+    assert.match(BIBLE_READER_HTML, /segmentSpan\.textContent = segment\.text/);
+    assert.match(BIBLE_READER_HTML, /--jesus: #ff7b72/);
+    assert.match(BIBLE_READER_HTML, /--jesus: #cf222e/);
+  });
 });
