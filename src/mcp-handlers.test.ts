@@ -579,4 +579,97 @@ describe("MCP translation support", () => {
     assert.equal(structured.language, "en");
     assert.equal(structured.translation?.id, "web");
   });
+
+  it("read_bible requests segments and preserves them for WEB and TCGNT verse views", async () => {
+    const jesusText = "For God so loved the world.";
+    const segments = [{ text: jesusText, speaker: "jesus" as const }];
+    const { fetchApi, requestedPaths } = createRouteMockFetchApi((path) => {
+      if (path.startsWith("/verses/")) {
+        const translation = path.includes("translation=tcgnt") ? "tcgnt" : "web";
+        return {
+          ...MOCK_WEB_VERSE_RESPONSE,
+          translation: { id: translation, name: translation.toUpperCase(), language: "en" },
+          verses: [{ ...MOCK_WEB_VERSE_RESPONSE.verses[0], text: jesusText, segments }],
+          text: jesusText,
+        };
+      }
+      return "NOT_FOUND";
+    });
+
+    for (const translation of ["web", "tcgnt"]) {
+      const result = await callMcpTool(createServer(fetchApi), "read_bible", {
+        reference: "John 3:16",
+        translation,
+      });
+      const structured = result.structuredContent as {
+        verses?: Array<{ text: string; segments?: typeof segments }>;
+      };
+      assert.deepEqual(structured.verses?.[0], {
+        verse: 16,
+        text: jesusText,
+        segments,
+      });
+    }
+
+    assert.ok(requestedPaths.every((path) => path.includes("segments=1")));
+  });
+
+  it("read_bible preserves mixed speaker segments and falls back to text when omitted", async () => {
+    const mixedText = "Then Jesus answered, “It is written.”";
+    const mixedSegments = [
+      { text: "Then Jesus answered, “", speaker: "narrator" as const },
+      { text: "It is written.", speaker: "jesus" as const },
+      { text: "”", speaker: "narrator" as const },
+    ];
+    const { fetchApi } = createRouteMockFetchApi((path) => {
+      if (path.includes("Matthew%204%3A4")) {
+        return {
+          ...MOCK_WEB_VERSE_RESPONSE,
+          reference: "Matthew 4:4",
+          verses: [{ ...MOCK_WEB_VERSE_RESPONSE.verses[0], verse: 4, text: mixedText, segments: mixedSegments }],
+          text: mixedText,
+        };
+      }
+      if (path.includes("John%2011%3A35") || path.includes("Genesis%201%3A1")) {
+        return MOCK_WEB_VERSE_RESPONSE;
+      }
+      return "NOT_FOUND";
+    });
+
+    const mixedResult = await callMcpTool(createServer(fetchApi), "read_bible", {
+      reference: "Matthew 4:4",
+    });
+    const mixedVerses = (mixedResult.structuredContent as {
+      verses?: Array<{ text: string; segments?: typeof mixedSegments }>;
+    }).verses;
+    assert.deepEqual(mixedVerses?.[0]?.segments, mixedSegments);
+    assert.equal(mixedVerses?.[0]?.segments?.map((segment) => segment.text).join(""), mixedText);
+
+    for (const reference of ["John 11:35", "Genesis 1:1"]) {
+      const result = await callMcpTool(createServer(fetchApi), "read_bible", { reference });
+      const verse = (result.structuredContent as {
+        verses?: Array<{ text: string; segments?: unknown }>;
+      }).verses?.[0];
+      assert.equal(verse?.text, MOCK_WEB_VERSE_RESPONSE.text);
+      assert.equal(verse?.segments, undefined);
+    }
+  });
+
+  it("read_bible chapter requests segments while search and random do not", async () => {
+    const { fetchApi, requestedPaths } = createRouteMockFetchApi((path) => {
+      if (path.startsWith("/chapters/")) return MOCK_WLC_CHAPTER_RESPONSE;
+      if (path.startsWith("/search?")) return { query: "love", translation: "web", total: 0, results: [] };
+      if (path.startsWith("/random")) return MOCK_WEB_VERSE_RESPONSE;
+      return "NOT_FOUND";
+    });
+
+    await callMcpTool(createServer(fetchApi), "read_bible", { reference: "Genesis 1" });
+    await callMcpTool(createServer(fetchApi), "search_bible", { query: "love" });
+    await callMcpTool(createServer(fetchApi), "get_random_verse", {});
+
+    const chapterPath = requestedPaths.find((path) => path.startsWith("/chapters/"));
+    assert.ok(chapterPath?.includes("segments=1"));
+    assert.ok(requestedPaths.filter((path) => /^(\/search\?|\/random)/.test(path))
+      .every((path) => !path.includes("segments=")));
+  });
 });
