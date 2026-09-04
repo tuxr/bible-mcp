@@ -1,0 +1,17 @@
+{
+  "name": "bible-mcp",
+  "install": "npm ci",
+  "ports": [
+    {
+      "name": "dev server",
+      "port": 8787
+    }
+  ],
+  "terminals": [
+    {
+      "name": "dev server",
+      "command": "npm run dev:local",
+      "description": "Local wrangler dev server for the Bible MCP worker at http://localhost:8787/mcp (uses the public Bible API backup instead of the same-account service binding)."
+    }
+  ]
+}

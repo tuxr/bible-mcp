@@ -33,3 +33,20 @@ service = "bible-api"  # Change this to your Bible API worker name
 # Comment out the [[services]] block above and uncomment this:
 # [vars]
 # BIBLE_API_URL = "https://bible-api.dws-cloud.com"  # Or your own API URL
+
+# =============================================================================
+# Local development environment
+# =============================================================================
+# Service bindings only resolve when the target `bible-api` worker is running
+# in the same Cloudflare account (or locally alongside this worker), so they
+# cannot connect from an isolated dev machine. This `dev` environment drops the
+# service binding and talks to the Bible API over HTTPS instead.
+#
+# It targets the worker's `workers.dev` backup rather than the custom domain:
+# `bible-api.dws-cloud.com` is fronted by a Cloudflare managed challenge that
+# blocks non-browser / data-center traffic (returns HTTP 403), while the
+# `workers.dev` backup is directly reachable for programmatic access.
+#
+# Run it with `npm run dev:local` (or `wrangler dev --env dev`).
+[env.dev.vars]
+BIBLE_API_URL = "https://bible-api.dws-cloud.workers.dev"
