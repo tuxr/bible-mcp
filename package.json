@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "dev:local": "wrangler dev --env dev",
     "deploy": "wrangler deploy",
     "inspect": "npx @modelcontextprotocol/inspector@latest",
     "test": "node --experimental-strip-types --test src/**/*.test.ts",
