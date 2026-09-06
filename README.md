@@ -68,6 +68,28 @@ npm run deploy
 2. Add the MCP server URL: `https://bible-mcp.dws-cloud.com/mcp`
 3. The Bible tools will now be available in your conversations
 
+## Cursor / Agent Plugin
+
+This repository is an [Agent Plugin](https://agent-plugins.org/) (`plugin.json` + `mcp.json` + `skills/`). It does **not** start a local MCP process or wrap the REST API. Cursor loads the skill and connects to the **hosted** Streamable HTTP endpoint:
+
+`https://bible-mcp.dws-cloud.com/mcp`
+
+No API key is required.
+
+### Install from this repo (local plugin path)
+
+1. Clone or use a local checkout of this repository.
+2. Point Cursor at it as a local plugin (symlink or copy):
+
+```bash
+ln -s /path/to/bible-mcp ~/.cursor/plugins/local/bible-mcp
+```
+
+3. Restart Cursor, or run **Developer: Reload Window**.
+4. In **Customize**, confirm the `bible-mcp` plugin: skill `scripture-lookup` and MCP server `bible`.
+
+On Teams/Enterprise, local plugin imports may need to be enabled by an admin.
+
 ## Example Usage
 
 Once connected, you can ask Claude things like:

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "bible-mcp",
+  "version": "1.0.0",
+  "description": "Scripture lookup and search through the hosted Bible MCP (https://bible-mcp.dws-cloud.com/mcp). No API key required.",
+  "author": {
+    "name": "tuxr",
+    "url": "https://github.com/tuxr"
+  },
+  "homepage": "https://tuxr.github.io/bible-mcp",
+  "repository": "https://github.com/tuxr/bible-mcp",
+  "license": "MIT",
+  "keywords": [
+    "bible",
+    "scripture",
+    "verse",
+    "mcp",
+    "agent-plugin",
+    "kjv",
+    "web",
+    "hebrew",
+    "search"
+  ]
+}
